@@ -55,11 +55,14 @@ module moving::streams {
         fungible_asset::transfer(store_signer, pool.store, wallet, amount);
     }
 
-    // Credit pool with amount
+    // Credit pool with amount, anyone can do this
     public fun credit_pool<T: key>(
-        signer: &signer, token: Object<T>, amount: u64
+        pool: address,
+        signer: &signer,
+        token: Object<T>,
+        amount: u64
     ) acquires Pool {
-        let pool = borrow_global_mut<Pool<Object<T>>>(signer::address_of(signer));
+        let pool = borrow_global_mut<Pool<Object<T>>>(pool);
         let wallet =
             primary_fungible_store::primary_store(signer::address_of(signer), token);
         fungible_asset::transfer(signer, wallet, pool.store, amount);
@@ -137,22 +140,31 @@ module moving::streams {
         drain_pool(signer, metadata, drain_amount);
     }
 
-    #[test(signer = @0xcafe)]
-    fun test_credit_pool(signer: &signer) acquires Pool {
+    #[test(signer = @0xcafe, stranger = @0xface)]
+    fun test_credit_pool(signer: &signer, stranger: &signer) acquires Pool {
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
             init_test_metadata_with_primary_store_enabled(&creator_ref);
         let signer_addr = signer::address_of(signer);
-        let mint_amount = 100;
+        let stranger_addr = signer::address_of(stranger);
+        let mint_amount = 50;
         let pool_amount = 10;
         let credit_amount = 5;
         mint(&mint_ref, signer_addr, mint_amount);
+        mint(&mint_ref, stranger_addr, mint_amount);
         create_pool(signer, metadata, pool_amount);
-        credit_pool(signer, metadata, credit_amount);
+        credit_pool(signer_addr, signer, metadata, credit_amount);
         assert!(
-            primary_fungible_store::balance(signer::address_of(signer), metadata)
+            primary_fungible_store::balance(signer_addr, metadata)
                 == (mint_amount - pool_amount - credit_amount)
         );
+        credit_pool(signer_addr, stranger, metadata, credit_amount);
+        assert!(
+            primary_fungible_store::balance(stranger_addr, metadata)
+                == (mint_amount - credit_amount)
+        );
+        let (balance, _) = view_pool<TestToken>(signer_addr);
+        assert!(balance == pool_amount + credit_amount * 2);
     }
 
     #[test(signer = @0xcafe)]
