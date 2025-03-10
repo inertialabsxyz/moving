@@ -31,7 +31,7 @@ module moving::streams {
         extend_ref: ExtendRef
     }
 
-    struct Debt {
+    struct Debt has store {
         destination: address,
         amount: u64
     }
