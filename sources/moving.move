@@ -122,9 +122,8 @@ module moving::streams {
 
     // Withdraws all owed to this point in time and returns outstanding if there is a deficit in the pool
     public fun withdraw_from_stream<T: key>(
-        pool_addr: address, stream_id: vector<u8>
-    ): u64 acquires Pool {
-        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
+        pool: &mut Pool<Object<T>>, stream_id: vector<u8>
+    ): u64 {
         // Balance pool without failing
         balance_pool(pool, false);
         // Pay amount due, if lacking funds set last paid timestamp to proportion paid
@@ -157,20 +156,13 @@ module moving::streams {
         amount_due - committed_balance
     }
 
-    // Pool owner or destination can cancel the stream
     // Balance pool and pay amount due
     public fun cancel_stream<T: key>(
-        signer: &signer, pool_addr: address, stream_id: vector<u8>
-    ) acquires Pool {
-        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
-        let stream = simple_map::borrow_mut(&mut pool.streams, &stream_id);
-        let signer_addr = signer::address_of(signer);
-        assert!(
-            pool_addr == signer_addr || stream.destination == signer_addr,
-            error::permission_denied(EOWNER)
-        );
+        pool: &mut Pool<Object<T>>, stream_id: vector<u8>
+    ) {
+        let outstanding = withdraw_from_stream<T>(pool, stream_id);
+        let stream = simple_map::borrow(&pool.streams, &stream_id);
 
-        let outstanding = withdraw_from_stream<T>(pool_addr, stream_id);
         if (outstanding > 0) {
             // Capture debt only at the moment
             vector::push_back(
