@@ -71,7 +71,7 @@ module moving::streams {
 
     public fun create_stream<T: key>(
         signer: &signer, destination: address, per_second: u64
-    ) acquires Pool {
+    ): vector<u8> acquires Pool {
         let pool_addr = signer::address_of(signer);
         let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
         let stream_id = get_stream_id(pool_addr, destination, per_second, pool.token);
@@ -90,6 +90,8 @@ module moving::streams {
         // A pool can't be in debt so must fail if pool can't be balanced
         balance_pool(pool, true);
         pool.total_secs = pool.total_secs + per_second;
+
+        stream_id
     }
 
     public fun balance_pool<T: key>(pool: &mut Pool<Object<T>>, fail: bool) {
