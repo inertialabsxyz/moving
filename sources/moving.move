@@ -47,7 +47,7 @@ module moving::streams {
         debts: vector<Debt>
     }
 
-    struct Stream has key, store {
+    struct Stream has key, store, drop {
         pool: address,
         destination: address,
         per_second: u64,
