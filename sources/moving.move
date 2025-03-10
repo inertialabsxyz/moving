@@ -1,12 +1,18 @@
 module moving::streams {
 
+    use std::bcs;
     use std::error;
     use std::signer;
+    use std::vector;
+    use aptos_std::aptos_hash::keccak256;
+    use aptos_std::simple_map;
+    use aptos_std::simple_map::SimpleMap;
     use aptos_framework::fungible_asset;
     use aptos_framework::fungible_asset::FungibleStore;
     use aptos_framework::object;
     use aptos_framework::object::{Object, ExtendRef};
     use aptos_framework::primary_fungible_store;
+    use aptos_framework::timestamp;
     #[test_only]
     use aptos_framework::fungible_asset::{create_test_token, TestToken};
     #[test_only]
@@ -18,12 +24,172 @@ module moving::streams {
     use moving::stream_token;
 
     const EAMOUNT: u64 = 0x1;
+    const EOWNER: u64 = 0x2;
+
+    struct Store has store {
+        store: Object<FungibleStore>,
+        extend_ref: ExtendRef
+    }
+
+    struct Debt {
+        destination: address,
+        amount: u64
+    }
 
     // A pool for any number of streams
-    struct Pool<phantom T> has key {
-        committed: u64,
-        store: Object<FungibleStore>,
-        store_extend_ref: ExtendRef
+    struct Pool<T> has key {
+        total_secs: u64,
+        committed: Store,
+        available: Store,
+        streams: SimpleMap<vector<u8>, Stream>,
+        token: T,
+        last_balance: u64,
+        debts: vector<Debt>
+    }
+
+    struct Stream has key, store {
+        pool: address,
+        destination: address,
+        per_second: u64,
+        last_update: u64
+    }
+
+    #[view]
+    public fun get_stream_id<T: key>(
+        pool: address,
+        destination: address,
+        per_second: u64,
+        token: Object<T>
+    ): vector<u8> {
+        let bytes = bcs::to_bytes(&pool);
+        vector::append(&mut bytes, bcs::to_bytes(&destination));
+        vector::append(&mut bytes, bcs::to_bytes(&per_second));
+        vector::append(&mut bytes, bcs::to_bytes(&token));
+
+        keccak256(bytes)
+    }
+
+    public fun create_stream<T: key>(
+        signer: &signer, destination: address, per_second: u64
+    ) acquires Pool {
+        let pool_addr = signer::address_of(signer);
+        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
+        let stream_id = get_stream_id(pool_addr, destination, per_second, pool.token);
+
+        simple_map::add(
+            &mut pool.streams,
+            stream_id,
+            Stream {
+                pool: pool_addr,
+                destination,
+                per_second,
+                last_update: timestamp::now_seconds()
+            }
+        );
+
+        // A pool can't be in debt so must fail if pool can't be balanced
+        balance_pool(pool, true);
+        pool.total_secs = pool.total_secs + per_second;
+    }
+
+    public fun balance_pool<T: key>(pool: &mut Pool<Object<T>>, fail: bool) {
+        let now = timestamp::now_seconds();
+        // Get last time we updated and the delta from now
+        let delta = now - pool.last_balance;
+        // Move from available to committed
+        let to_move = pool.total_secs * delta;
+        // Get signer for available store
+        let store_signer =
+            &object::generate_signer_for_extending(&pool.available.extend_ref);
+
+        // If we don't want to fail we will need to commit all that is available
+        if (!fail) {
+            let available = fungible_asset::balance(pool.available.store);
+            if (available < to_move) {
+                to_move = available;
+            }
+        };
+        // Move to committed
+        fungible_asset::transfer(
+            store_signer,
+            pool.available.store,
+            pool.committed.store,
+            to_move
+        );
+        // Update pool timestamps
+        pool.last_balance = now;
+    }
+
+    // Withdraws all owed to this point in time and returns outstanding if there is a deficit in the pool
+    public fun withdraw_from_stream<T: key>(
+        pool_addr: address, stream_id: vector<u8>
+    ): u64 acquires Pool {
+        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
+        // Balance pool without failing
+        balance_pool(pool, false);
+        // Pay amount due, if lacking funds set last paid timestamp to proportion paid
+        let committed_balance = fungible_asset::balance(pool.committed.store);
+        // Get signer for committed store
+        let store_signer =
+            &object::generate_signer_for_extending(&pool.committed.extend_ref);
+
+        let stream = simple_map::borrow_mut(&mut pool.streams, &stream_id);
+        let now = timestamp::now_seconds();
+        let delta = now - stream.last_update;
+        let amount_due = delta * stream.per_second;
+        let update = now;
+        let wallet = primary_fungible_store::primary_store(
+            stream.destination, pool.token
+        );
+
+        if (amount_due > committed_balance) {
+            // we clear all of the committed to pay the debt
+            update = (delta / amount_due) * committed_balance;
+            amount_due = committed_balance;
+        };
+        stream.last_update = update;
+        fungible_asset::transfer(
+            store_signer,
+            pool.committed.store,
+            wallet,
+            amount_due
+        );
+        amount_due - committed_balance
+    }
+
+    // Pool owner or destination can cancel the stream
+    // Balance pool and pay amount due
+    public fun cancel_stream<T: key>(
+        signer: &signer, pool_addr: address, stream_id: vector<u8>
+    ) acquires Pool {
+        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
+        let stream = simple_map::borrow_mut(&mut pool.streams, &stream_id);
+        let signer_addr = signer::address_of(signer);
+        assert!(
+            pool_addr == signer_addr || stream.destination == signer_addr,
+            error::permission_denied(EOWNER)
+        );
+
+        let outstanding = withdraw_from_stream<T>(pool_addr, stream_id);
+        if (outstanding > 0) {
+            // Capture debt only at the moment
+            vector::push_back(
+                &mut pool.debts,
+                Debt { destination: stream.destination, amount: outstanding }
+            );
+        } else {
+            // Remove stream
+            pool.total_secs = pool.total_secs - stream.per_second;
+            simple_map::remove(&mut pool.streams, &stream_id);
+        }
+    }
+
+    fun create_store<T: key>(owner: address, token: Object<T>): Store {
+        let cntr_ref = &object::create_object(owner);
+        Store {
+            store: fungible_asset::create_store(cntr_ref, token),
+            extend_ref: object::generate_extend_ref(cntr_ref)
+        }
     }
 
     // Create pool controlled by owner with initial amount
@@ -31,15 +197,21 @@ module moving::streams {
         signer: &signer, token: Object<T>, amount: u64
     ) {
         assert!(amount > 0, error::invalid_argument(EAMOUNT));
-        let pool_cntr_ref = &object::create_object(@moving);
-        let store = fungible_asset::create_store(pool_cntr_ref, token);
-        let store_extend_ref = object::generate_extend_ref(pool_cntr_ref);
 
-        let pool = Pool<Object<T>> { committed: 0, store, store_extend_ref };
+        let pool = Pool<Object<T>> {
+            total_secs: 0,
+            available: create_store(@moving, token),
+            committed: create_store(@moving, token),
+            streams: simple_map::new(),
+            token,
+            last_balance: timestamp::now_seconds(),
+            debts: vector::empty<Debt>()
+        };
 
         let wallet =
             primary_fungible_store::primary_store(signer::address_of(signer), token);
-        fungible_asset::transfer(signer, wallet, store, amount);
+
+        fungible_asset::transfer(signer, wallet, pool.available.store, amount);
 
         move_to(signer, pool);
     }
@@ -51,8 +223,15 @@ module moving::streams {
         let pool = borrow_global_mut<Pool<Object<T>>>(signer::address_of(signer));
         let wallet =
             primary_fungible_store::primary_store(signer::address_of(signer), token);
-        let store_signer = &object::generate_signer_for_extending(&pool.store_extend_ref);
-        fungible_asset::transfer(store_signer, pool.store, wallet, amount);
+        let store_signer =
+            &object::generate_signer_for_extending(&pool.available.extend_ref);
+
+        fungible_asset::transfer(
+            store_signer,
+            pool.available.store,
+            wallet,
+            amount
+        );
     }
 
     // Credit pool with amount, anyone can do this
@@ -65,13 +244,17 @@ module moving::streams {
         let pool = borrow_global_mut<Pool<Object<T>>>(pool);
         let wallet =
             primary_fungible_store::primary_store(signer::address_of(signer), token);
-        fungible_asset::transfer(signer, wallet, pool.store, amount);
+
+        fungible_asset::transfer(signer, wallet, pool.available.store, amount);
     }
 
     #[view]
     public fun view_pool<T: key>(owner: address): (u64, u64) acquires Pool {
         let pool = borrow_global<Pool<Object<T>>>(owner);
-        (fungible_asset::balance(pool.store), pool.committed)
+        (
+            fungible_asset::balance(pool.available.store),
+            fungible_asset::balance(pool.committed.store)
+        )
     }
 
     #[test(signer = @0xcafe)]
@@ -97,13 +280,17 @@ module moving::streams {
 
         // Verify we have a pool created with FA included and that as signer we can't now manipulate these funds
         let pool = borrow_global<Pool<Object<TestToken>>>(signer_addr);
-        assert!(pool.committed == 0, 1);
-        assert!(fungible_asset::balance(pool.store) == pool_amount, 1);
+        assert!(fungible_asset::balance(pool.available.store) == pool_amount, 1);
 
         let wallet =
             primary_fungible_store::primary_store(signer::address_of(signer), metadata);
         // expected failure
-        fungible_asset::transfer(signer, pool.store, wallet, pool_amount);
+        fungible_asset::transfer(
+            signer,
+            pool.available.store,
+            wallet,
+            pool_amount
+        );
     }
 
     #[test(signer = @0xcafe)]
