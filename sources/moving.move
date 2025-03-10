@@ -408,6 +408,36 @@ module moving::streams {
             fungible_asset::balance(pool.committed.store) == per_second * time_jump
         );
     }
+
+    // Create stream, jump in time and withdraw amount.  Confirm we have paid the amount due.
+    #[test(aptos_framework = @aptos_framework, signer = @0xcafe, destination = @0xface)]
+    fun test_create_stream_and_withdraw(
+        signer: &signer, destination: &signer, aptos_framework: &signer
+    ) acquires Pool {
+        timestamp::set_time_has_started_for_testing(aptos_framework);
+        let (creator_ref, metadata) = create_test_token(signer);
+        let (mint_ref, _, _) =
+            init_test_metadata_with_primary_store_enabled(&creator_ref);
+        let signer_addr = signer::address_of(signer);
+        let destination_addr = signer::address_of(destination);
+        let mint_amount = 50;
+        let pool_amount = 10;
+        let per_second = 1;
+        let time_jump = 5;
+        mint(&mint_ref, signer_addr, mint_amount);
+        mint(&mint_ref, destination_addr, mint_amount);
+        create_pool(signer, metadata, pool_amount);
+        let stream_id = create_stream<TestToken>(signer, destination_addr, per_second);
+        timestamp::update_global_time_for_test_secs(time_jump);
+        let pool = borrow_global_mut<Pool<Object<TestToken>>>(signer_addr);
+        let outstanding = withdraw_from_stream(pool, stream_id);
+
+        assert!(outstanding == 0);
+        assert!(
+            primary_fungible_store::balance(destination_addr, pool.token)
+                == mint_amount + per_second * time_jump
+        );
+    }
 }
 
 #[test_only]
