@@ -381,6 +381,31 @@ module moving::streams {
         mint(&mint_ref, signer_addr, mint_amount);
         create_pool(signer, metadata, pool_amount);
     }
+
+    // Create a stream, jump some time and just balance pool to confirm we have the correct committed amount
+    #[test(aptos_framework = @aptos_framework, signer = @0xcafe, destination = @0xface)]
+    fun test_create_stream_and_balance_pool(
+        signer: &signer, destination: &signer, aptos_framework: &signer
+    ) acquires Pool {
+        timestamp::set_time_has_started_for_testing(aptos_framework);
+        let (creator_ref, metadata) = create_test_token(signer);
+        let (mint_ref, _, _) =
+            init_test_metadata_with_primary_store_enabled(&creator_ref);
+        let signer_addr = signer::address_of(signer);
+        let mint_amount = 100;
+        let pool_amount = 10;
+        let per_second = 1;
+        let time_jump = 5;
+        mint(&mint_ref, signer_addr, mint_amount);
+        create_pool(signer, metadata, pool_amount);
+        create_stream<TestToken>(signer, signer::address_of(destination), per_second);
+        timestamp::update_global_time_for_test_secs(time_jump);
+        let pool = borrow_global_mut<Pool<Object<TestToken>>>(signer_addr);
+        balance_pool(pool, true);
+        assert!(
+            fungible_asset::balance(pool.committed.store) == per_second * time_jump
+        );
+    }
 }
 
 #[test_only]
