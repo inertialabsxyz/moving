@@ -65,6 +65,12 @@ module moving::streams {
         outstanding: u64
     }
 
+    #[event]
+    struct CloseStreamEvent has drop, store {
+        stream_id: vector<u8>,
+        outstanding: u64
+    }
+
     #[view]
     public fun get_stream_id<T: key>(
         pool: address,
@@ -186,6 +192,14 @@ module moving::streams {
         );
 
         outstanding
+    }
+
+    public entry fun close_stream<T: key>(
+        signer: &signer, stream_id: vector<u8>
+    ) acquires Pool {
+        let pool = borrow_global_mut<Pool<Object<T>>>(signer::address_of(signer));
+        let outstanding = cancel_stream(pool, stream_id);
+        0x1::event::emit(CloseStreamEvent { stream_id, outstanding });
     }
 
     // Balance pool and pay amount due
