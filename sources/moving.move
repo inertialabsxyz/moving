@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 module moving::streams {
 
     use std::bcs;
