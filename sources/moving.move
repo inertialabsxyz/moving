@@ -59,6 +59,12 @@ module moving::streams {
         stream_id: vector<u8>
     }
 
+    #[event]
+    struct WithdrawalEvent has drop, store {
+        stream_id: vector<u8>,
+        outstanding: u64
+    }
+
     #[view]
     public fun get_stream_id<T: key>(
         pool: address,
@@ -132,6 +138,14 @@ module moving::streams {
         );
         // Update pool timestamps
         pool.last_balance = now;
+    }
+
+    public entry fun make_withdrawal_from_stream<T: key>(
+        signer: &signer, stream_id: vector<u8>
+    ) acquires Pool {
+        let pool = borrow_global_mut<Pool<Object<T>>>(signer::address_of(signer));
+        let outstanding = withdraw_from_stream(pool, stream_id);
+        0x1::event::emit(WithdrawalEvent { stream_id, outstanding });
     }
 
     // Withdraws all owed to this point in time and returns outstanding if there is a deficit in the pool
