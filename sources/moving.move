@@ -313,9 +313,10 @@ module moving::streams {
         )
     }
 
-    #[test(signer = @0xcafe)]
+    #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
     #[expected_failure(abort_code = 0x50008, location = aptos_framework::fungible_asset)]
-    fun test_create_pool(signer: &signer) acquires Pool {
+    fun test_create_pool(signer: &signer, aptos_framework: &signer) acquires Pool {
+        timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
             init_test_metadata_with_primary_store_enabled(&creator_ref);
@@ -349,8 +350,9 @@ module moving::streams {
         );
     }
 
-    #[test(signer = @0xcafe)]
-    fun test_drain_pool(signer: &signer) acquires Pool {
+    #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
+    fun test_drain_pool(signer: &signer, aptos_framework: &signer) acquires Pool {
+        timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
             init_test_metadata_with_primary_store_enabled(&creator_ref);
@@ -367,9 +369,10 @@ module moving::streams {
         );
     }
 
-    #[test(signer = @0xcafe)]
+    #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
     #[expected_failure(abort_code = 0x10004, location = aptos_framework::fungible_asset)]
-    fun test_excess_drain_pool(signer: &signer) acquires Pool {
+    fun test_excess_drain_pool(signer: &signer, aptos_framework: &signer) acquires Pool {
+        timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
             init_test_metadata_with_primary_store_enabled(&creator_ref);
@@ -383,8 +386,11 @@ module moving::streams {
         drain_pool(signer, metadata, drain_amount);
     }
 
-    #[test(signer = @0xcafe, stranger = @0xface)]
-    fun test_credit_pool(signer: &signer, stranger: &signer) acquires Pool {
+    #[test(signer = @0xcafe, stranger = @0xface, aptos_framework = @aptos_framework)]
+    fun test_credit_pool(
+        signer: &signer, stranger: &signer, aptos_framework: &signer
+    ) acquires Pool {
+        timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
             init_test_metadata_with_primary_store_enabled(&creator_ref);
@@ -410,8 +416,9 @@ module moving::streams {
         assert!(balance == pool_amount + credit_amount * 2);
     }
 
-    #[test(signer = @0xcafe)]
-    fun test_view_pool(signer: &signer) acquires Pool {
+    #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
+    fun test_view_pool(signer: &signer, aptos_framework: &signer) acquires Pool {
+        timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
             init_test_metadata_with_primary_store_enabled(&creator_ref);
@@ -424,8 +431,11 @@ module moving::streams {
         assert!(balance == pool_amount && committed == 0);
     }
 
-    #[test(signer = @0xcafe)]
-    fun test_multiple_create_pool(signer: &signer) {
+    #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
+    fun test_multiple_create_pool(
+        signer: &signer, aptos_framework: &signer
+    ) {
+        timestamp::set_time_has_started_for_testing(aptos_framework);
         // Create a pool with the `TestToken`
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
