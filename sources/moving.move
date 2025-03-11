@@ -143,11 +143,14 @@ module moving::streams {
             stream.destination, pool.token
         );
 
+        let outstanding = 0;
         if (amount_due > committed_balance) {
             // we clear all of the committed to pay the debt
             update = (delta / amount_due) * committed_balance;
+            outstanding = amount_due - committed_balance;
             amount_due = committed_balance;
         };
+
         stream.last_update = update;
         fungible_asset::transfer(
             store_signer,
@@ -155,7 +158,8 @@ module moving::streams {
             wallet,
             amount_due
         );
-        amount_due - committed_balance
+
+        outstanding
     }
 
     // Balance pool and pay amount due
