@@ -165,7 +165,7 @@ module moving::streams {
     // Balance pool and pay amount due
     public fun cancel_stream<T: key>(
         pool: &mut Pool<Object<T>>, stream_id: vector<u8>
-    ) {
+    ) : u64 {
         let outstanding = withdraw_from_stream<T>(pool, stream_id);
         let stream = simple_map::borrow(&pool.streams, &stream_id);
 
@@ -175,11 +175,13 @@ module moving::streams {
                 &mut pool.debts,
                 Debt { destination: stream.destination, amount: outstanding }
             );
-        } else {
-            // Remove stream
-            pool.total_secs = pool.total_secs - stream.per_second;
-            simple_map::remove(&mut pool.streams, &stream_id);
-        }
+        };
+
+        // Remove stream
+        pool.total_secs = pool.total_secs - stream.per_second;
+        simple_map::remove(&mut pool.streams, &stream_id);
+
+        outstanding
     }
 
     fun create_store<T: key>(owner: address, token: Object<T>): Store {
