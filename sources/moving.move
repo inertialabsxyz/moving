@@ -54,6 +54,11 @@ module moving::streams {
         last_update: u64
     }
 
+    #[event]
+    struct StreamCreatedEvent has drop, store {
+        stream_id: vector<u8>
+    }
+
     #[view]
     public fun get_stream_id<T: key>(
         pool: address,
@@ -67,6 +72,13 @@ module moving::streams {
         vector::append(&mut bytes, bcs::to_bytes(&token));
 
         keccak256(bytes)
+    }
+
+    public entry fun start_stream<T: key>(
+        signer: &signer, destination: address, per_second: u64
+    ) acquires Pool {
+        let stream_id = create_stream<T>(signer, destination, per_second);
+        0x1::event::emit(StreamCreatedEvent { stream_id });
     }
 
     public fun create_stream<T: key>(
@@ -165,7 +177,7 @@ module moving::streams {
     // Balance pool and pay amount due
     public fun cancel_stream<T: key>(
         pool: &mut Pool<Object<T>>, stream_id: vector<u8>
-    ) : u64 {
+    ): u64 {
         let outstanding = withdraw_from_stream<T>(pool, stream_id);
         let stream = simple_map::borrow(&pool.streams, &stream_id);
 
