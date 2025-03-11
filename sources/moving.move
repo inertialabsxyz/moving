@@ -193,7 +193,7 @@ module moving::streams {
     }
 
     // Create pool controlled by owner with initial amount
-    public fun create_pool<T: key>(
+    public entry fun create_pool<T: key>(
         signer: &signer, token: Object<T>, amount: u64
     ) {
         assert!(amount > 0, error::invalid_argument(EAMOUNT));
@@ -217,7 +217,7 @@ module moving::streams {
     }
 
     // Drain pool of amount to signing owner of pool
-    public fun drain_pool<T: key>(
+    public entry fun drain_pool<T: key>(
         signer: &signer, token: Object<T>, amount: u64
     ) acquires Pool {
         let pool = borrow_global_mut<Pool<Object<T>>>(signer::address_of(signer));
@@ -235,7 +235,7 @@ module moving::streams {
     }
 
     // Credit pool with amount, anyone can do this
-    public fun credit_pool<T: key>(
+    public entry fun credit_pool<T: key>(
         pool: address,
         signer: &signer,
         token: Object<T>,
