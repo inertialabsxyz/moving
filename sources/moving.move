@@ -71,6 +71,13 @@ module moving::streams {
         outstanding: u64
     }
 
+    #[event]
+    struct DebtEvent has drop, store {
+        stream_id: vector<u8>,
+        destination: address,
+        amount: u64
+    }
+
     #[view]
     public fun get_stream_id<T: key>(
         pool: address,
@@ -215,6 +222,14 @@ module moving::streams {
                 &mut pool.debts,
                 Debt { destination: stream.destination, amount: outstanding }
             );
+            // would prefer this to be in another spot
+            0x1::event::emit(
+                DebtEvent {
+                    stream_id,
+                    destination: stream.destination,
+                    amount: outstanding
+                }
+            )
         };
 
         // Remove stream
