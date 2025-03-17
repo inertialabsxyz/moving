@@ -292,8 +292,8 @@ module moving::streams {
 
     // Credit pool with amount, anyone can do this
     public entry fun credit_pool<T: key>(
-        pool: address,
         signer: &signer,
+        pool: address,
         token: Object<T>,
         amount: u64
     ) acquires Pool {
@@ -402,12 +402,12 @@ module moving::streams {
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, stranger_addr, mint_amount);
         create_pool(signer, metadata, pool_amount);
-        credit_pool(signer_addr, signer, metadata, credit_amount);
+        credit_pool(signer, signer_addr, metadata, credit_amount);
         assert!(
             primary_fungible_store::balance(signer_addr, metadata)
                 == (mint_amount - pool_amount - credit_amount)
         );
-        credit_pool(signer_addr, stranger, metadata, credit_amount);
+        credit_pool(stranger, signer_addr, metadata, credit_amount);
         assert!(
             primary_fungible_store::balance(stranger_addr, metadata)
                 == (mint_amount - credit_amount)
