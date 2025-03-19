@@ -264,6 +264,10 @@ module moving::streams {
             debts: vector::empty<Debt>()
         };
 
+        primary_fungible_store::ensure_primary_store_exists(
+            signer::address_of(signer), token
+        );
+
         let wallet =
             primary_fungible_store::primary_store(signer::address_of(signer), token);
 
