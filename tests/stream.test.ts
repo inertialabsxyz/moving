@@ -19,8 +19,21 @@ const MINT_AMOUNT = 100_000_000;
 
 let deployerAccount = Account.generate();
 
-enum Tokens {
-    APT = "0xa",
+async function getSTRMAddress() : Promise<string> {
+    const result = await aptos.view({
+        payload: {
+            function: `${deployerAccount.accountAddress}::stream_coin::get_metadata`,
+            functionArguments: [],
+        }
+    });
+
+    return (result[0] as Object).inner || "";
+}
+
+const Tokens = {
+    APT: "0xa", STRM: "",
+
+
 }
 
 async function migrateAccountToFA(signer: Ed25519Account) {
@@ -61,6 +74,7 @@ async function setupAccounts(accounts: Array<Ed25519Account>) {
 beforeAll(async () => {
     deployerAccount = await deploy();
     await setupAccounts(Object.values(accounts));
+    Tokens.STRM = await getSTRMAddress();
 }, 60000);
 
 interface WalletStore {
