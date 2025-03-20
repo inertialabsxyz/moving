@@ -103,16 +103,16 @@ async function getPoolObject(account: Ed25519Account, token: string) {
     return await aptos.getAccountResource({accountAddress: poolAddress, resourceType: type});
 }
 
-async function createPool(account: Ed25519Account, poolAmount: number) {
+async function createPool(account: Ed25519Account, poolAmount: number, token: string = Tokens.APT) {
     const transaction = await aptos.transaction.build.simple({
-        sender: accounts.alice.accountAddress,
+        sender: account.accountAddress,
         data: {
             function: `${deployerAccount.accountAddress}::streams::create_pool`,
-            functionArguments: [Tokens.APT, poolAmount],
+            functionArguments: [token, poolAmount],
             typeArguments: ["0x1::fungible_asset::Metadata"],
         },
     });
-    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
+    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: account, transaction});
     await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
 }
 
