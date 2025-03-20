@@ -17,6 +17,10 @@ const accounts = {
 };
 const MINT_AMOUNT = 100_000_000;
 
+interface Object {
+    inner: string
+}
+
 let deployerAccount = Account.generate();
 
 async function getSTRMAddress() : Promise<string> {
@@ -76,10 +80,6 @@ beforeAll(async () => {
     await setupAccounts(Object.values(accounts));
     Tokens.STRM = await getSTRMAddress();
 }, 60000);
-
-interface WalletStore {
-    inner: string
-}
 
 async function getPoolAddress(account: Ed25519Account, token: string) : Promise<MoveValue> {
     const result = await aptos.view({
@@ -149,7 +149,7 @@ test("Create a pool", async () => {
         }
     });
     try {
-        const inner = (walletView[0] as WalletStore).inner || "";
+        const inner = (walletView[0] as Object).inner || "";
         // Verify that funds can't be manipulated
         const transferFA = await aptos.transaction.build.simple({
             sender: accounts.alice.accountAddress,
