@@ -260,3 +260,51 @@ test("Credit the pool", async () => {
         expect(availableStore["balance"]).toBe(poolAmount.toString());
     }
 });
+
+interface PoolView {
+    available: number,
+    committed: number,
+}
+
+async function viewPool(account: Ed25519Account, token: string) : Promise<PoolView> {
+    const poolAddr = await getPoolAddress(accounts.alice, Tokens.APT);
+    let poolAddress = poolAddr?.toString() || "";
+
+    const result = await aptos.view({
+        payload: {
+            function: `${deployerAccount.accountAddress}::streams::view_pool`,
+            functionArguments: [poolAddress],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+
+    const [available, committed] = result.map(Number) as [number, number];
+    return { available, committed };
+}
+
+test("View a pool", async () => {
+    // Create the pool
+    let poolAmount = 100;
+    await createPool(accounts.alice, poolAmount);
+    let poolView = await viewPool(accounts.alice, Tokens.APT);
+
+    expect(poolView.available).toBe(poolAmount);
+    expect(poolView.committed).toBe(0);
+});
+
+test("Create multiple pools", async () => {
+    // Create the pool
+    let poolAmount = 100;
+
+    let tokens = [Tokens.APT, Tokens.STRM];
+
+    for (const token of tokens) {
+        for (const account of Object.values(accounts)) {
+            await createPool(account, poolAmount, token);
+            let poolView = await viewPool(account, token);
+
+            expect(poolView.available).toBe(poolAmount);
+            expect(poolView.committed).toBe(0);
+        }
+    }
+});
