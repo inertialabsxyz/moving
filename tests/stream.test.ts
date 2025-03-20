@@ -210,3 +210,39 @@ test("Excess Drain from the pool", async () => {
         expect(error["transaction"]["vm_status"]).toContain("EINSUFFICIENT_BALANCE(0x10004)");
     }
 });
+
+test("Credit the pool", async () => {
+    // Create the pool
+    let poolAmount = 100;
+    await createPool(accounts.alice, poolAmount);
+
+    const poolAddr = await getPoolAddress(accounts.alice, Tokens.APT);
+    let poolAddress = poolAddr?.toString() || "";
+
+    let creditAmount = 50;
+
+    for (const account of Object.values(accounts)) {
+        let oldBalance = await aptos.account.getAccountAPTAmount(account);
+        // Credit the pool
+        const transaction = await aptos.transaction.build.simple({
+            sender: account.accountAddress,
+            data:{
+                function: `${deployerAccount.accountAddress}::streams::credit_pool`,
+                functionArguments: [poolAddress, Tokens.APT, creditAmount],
+                typeArguments: ["0x1::fungible_asset::Metadata"],
+            }
+        });
+        const pendingTransaction = await aptos.signAndSubmitTransaction({signer: account, transaction});
+        const executedTransaction = await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+        const gasCost = parseInt(executedTransaction.gas_used) * (await aptos.getGasPriceEstimation()).gas_estimate;
+
+        let newBalance = await aptos.account.getAccountAPTAmount(account);
+        expect(newBalance).toBe(oldBalance - creditAmount - gasCost);
+
+        const poolObject = await getPoolObject(accounts.alice, Tokens.APT);
+        const availableStoreAddress = poolObject["available"]["store"]["inner"];
+        const availableStore = await aptos.getAccountResource({accountAddress: availableStoreAddress, resourceType: "0x1::fungible_asset::FungibleStore"});
+        poolAmount += creditAmount;
+        expect(availableStore["balance"]).toBe(poolAmount.toString());
+    }
+});
