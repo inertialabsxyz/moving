@@ -62,6 +62,24 @@ interface WalletStore {
     inner: string
 }
 
+async function getPoolObject(account: Ed25519Account, token: string) {
+    // Verify pool and assets in store
+    const result = await aptos.view({
+        payload: {
+            function: `${deployerAccount.accountAddress}::streams::pool_address`,
+            functionArguments: [`${account.accountAddress}`, token],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+
+    expect(result.length).toBe(1);
+    const poolAddress = result[0]?.toString() || "";
+    let type = `${deployerAccount.accountAddress}::streams::Pool<0x1::object::Object<0x1::fungible_asset::Metadata>>`;
+
+    // @ts-ignore
+    return await aptos.getAccountResource({accountAddress: poolAddress, resourceType: type});
+}
+
 // https://github.com/aptos-labs/aptos-ts-sdk/tree/main/examples/typescript
 test("Create a pool", async () => {
     // aptos move run --function-id 17d1169c2f4e744ea21495510702cae3eba2230e928713bc07ae7c611cd1269b::streams::create_pool --type-args 0x1::fungible_asset::Metadata --args address:0xa u64:1000000
