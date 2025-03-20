@@ -56,7 +56,6 @@ async function migrateAccountToFA(signer: Ed25519Account) {
 }
 
 async function mintSTRM(signer: Ed25519Account, account: Ed25519Account) {
-    // aptos move run --function-id moving::stream_coin::mint --args address:0x1 u64:100000000
     const transaction = await aptos.transaction.build.simple({
         sender: signer.accountAddress,
         data: {
