@@ -1,5 +1,14 @@
 import { execSync } from "child_process";
-import {AccountAddress, Aptos, AptosConfig, Network, Account, aptosCoinStructTag} from "@aptos-labs/ts-sdk";
+import {
+    AccountAddress,
+    Aptos,
+    AptosConfig,
+    Network,
+    Account,
+    aptosCoinStructTag,
+    PrivateKey,
+    Ed25519Account
+} from "@aptos-labs/ts-sdk";
 import * as fs from "node:fs";
 import * as path from "node:path";
 const config = new AptosConfig({ network: Network.LOCAL });
@@ -64,12 +73,10 @@ async function deployInternal() {
     const response = await aptos.waitForTransaction({ transactionHash: pendingTransaction.hash });
     console.log(response);
 }
-export async function deploy() {
-    try {
-        await deployInternal();
-        console.log("Deployment complete");
-    } catch (error) {
-        console.error("Deployment failed:", error);
-    }
+export async function deploy(): Promise<Ed25519Account> {
+    await deployInternal();
+    console.log("Deployment complete");
+    return deployAccount;
 }
+
 
