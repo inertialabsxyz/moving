@@ -3,9 +3,7 @@ import {
     AptosConfig,
     Network,
     Account,
-    AccountAddress,
     Ed25519Account,
-    Ed25519PrivateKey, sleep
 } from "@aptos-labs/ts-sdk";
 import {deploy} from "./deploy";
 const config = new AptosConfig({ network: Network.LOCAL });
@@ -15,6 +13,10 @@ const bob = Account.generate();
 const MINT_AMOUNT = 100_000_000;
 
 let deployerAccount = Account.generate();
+
+enum Tokens {
+    APT = "0xa",
+}
 
 async function migrateAccountToFA(signer: Ed25519Account) {
     // Move coins to FA
@@ -89,7 +91,7 @@ test("Create a pool", async () => {
         sender: alice.accountAddress,
         data: {
             function: `${deployerAccount.accountAddress}::streams::create_pool`,
-            functionArguments: ["0xa", poolAmount],
+            functionArguments: [Tokens.APT, poolAmount],
             typeArguments: ["0x1::fungible_asset::Metadata"],
         },
     });
@@ -100,22 +102,7 @@ test("Create a pool", async () => {
     // Verify assets have left wallet
     let newBalance = await aptos.account.getAccountAPTAmount(alice);
     expect(newBalance).toBe(oldBalance - poolAmount - gasCost);
-
-    // Verify pool and assets in store
-    const result = await aptos.view({
-        payload: {
-            function: `${deployerAccount.accountAddress}::streams::pool_address`,
-            functionArguments: [`${alice.accountAddress}`, "0xa"],
-            typeArguments: ["0x1::fungible_asset::Metadata"],
-        }
-    });
-
-    expect(result.length).toBe(1);
-    const poolAddress = result[0]?.toString() || "";
-    let type = `${deployerAccount.accountAddress}::streams::Pool<0x1::object::Object<0x1::fungible_asset::Metadata>>`;
-
-    // @ts-ignore
-    const poolObject = await aptos.getAccountResource({accountAddress: poolAddress, resourceType: type});
+    const poolObject = await getPoolObject(alice, Tokens.APT);
     const availableStoreAddress = poolObject["available"]["store"]["inner"];
     const availableStore = await aptos.getAccountResource({accountAddress: availableStoreAddress, resourceType: "0x1::fungible_asset::FungibleStore"});
     expect(availableStore["balance"]).toBe("100");
@@ -124,7 +111,7 @@ test("Create a pool", async () => {
     const walletView = await aptos.view({
         payload: {
             function: "0x1::primary_fungible_store::primary_store",
-            functionArguments: [`${alice.accountAddress}`, "0xa"],
+            functionArguments: [`${alice.accountAddress}`, Tokens.APT],
             typeArguments: ["0x1::fungible_asset::Metadata"],
         }
     });
@@ -147,4 +134,46 @@ test("Create a pool", async () => {
     } catch (error: any) {
         expect(error["transaction"]["vm_status"]).toContain("ENOT_STORE_OWNER(0x50008)");
     }
+});
+
+test("Drain from the pool", async () => {
+    // Create the pool
+    let poolAmount = 100;
+    {
+        const transaction = await aptos.transaction.build.simple({
+            sender: alice.accountAddress,
+            data: {
+                function: `${deployerAccount.accountAddress}::streams::create_pool`,
+                functionArguments: [Tokens.APT, poolAmount],
+                typeArguments: ["0x1::fungible_asset::Metadata"],
+            },
+        });
+        const pendingTransaction = await aptos.signAndSubmitTransaction({signer: alice, transaction});
+        await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+    }
+
+    let drainAmount = 50;
+    let oldBalance = await aptos.account.getAccountAPTAmount(alice);
+    // Drain the pool
+    const transaction = await aptos.transaction.build.simple({
+        sender: alice.accountAddress,
+        data:{
+            function: `${deployerAccount.accountAddress}::streams::drain_pool`,
+            functionArguments: [Tokens.APT, drainAmount],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: alice, transaction});
+    const executedTransaction = await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+    const gasCost = parseInt(executedTransaction.gas_used) * (await aptos.getGasPriceEstimation()).gas_estimate;
+
+    // Verify assets have come into the wallet of Alice
+    let newBalance = await aptos.account.getAccountAPTAmount(alice);
+    expect(newBalance).toBe(oldBalance + drainAmount - gasCost);
+
+    // Verify assets have left the pool
+    const poolObject = await getPoolObject(alice, Tokens.APT);
+    const availableStoreAddress = poolObject["available"]["store"]["inner"];
+    const availableStore = await aptos.getAccountResource({accountAddress: availableStoreAddress, resourceType: "0x1::fungible_asset::FungibleStore"});
+    expect(availableStore["balance"]).toBe((poolAmount - drainAmount).toString());
 });
