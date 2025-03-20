@@ -177,3 +177,39 @@ test("Drain from the pool", async () => {
     const availableStore = await aptos.getAccountResource({accountAddress: availableStoreAddress, resourceType: "0x1::fungible_asset::FungibleStore"});
     expect(availableStore["balance"]).toBe((poolAmount - drainAmount).toString());
 });
+
+test("Excess Drain from the pool", async () => {
+    // Create the pool
+    let poolAmount = 100;
+    {
+        const transaction = await aptos.transaction.build.simple({
+            sender: alice.accountAddress,
+            data: {
+                function: `${deployerAccount.accountAddress}::streams::create_pool`,
+                functionArguments: [Tokens.APT, poolAmount],
+                typeArguments: ["0x1::fungible_asset::Metadata"],
+            },
+        });
+        const pendingTransaction = await aptos.signAndSubmitTransaction({signer: alice, transaction});
+        await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+    }
+
+    try {
+        let drainAmount = poolAmount + 1;
+        // Drain the pool
+        const transaction = await aptos.transaction.build.simple({
+            sender: alice.accountAddress,
+            data: {
+                function: `${deployerAccount.accountAddress}::streams::drain_pool`,
+                functionArguments: [Tokens.APT, drainAmount],
+                typeArguments: ["0x1::fungible_asset::Metadata"],
+            }
+        });
+        const pendingTransaction = await aptos.signAndSubmitTransaction({signer: alice, transaction});
+        await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+        throw new Error("Expected failure of transaction");
+    } catch (error: any) {
+        console.log(error["transaction"]["vm_status"]);
+        expect(error["transaction"]["vm_status"]).toContain("EINSUFFICIENT_BALANCE(0x10004)");
+    }
+});
