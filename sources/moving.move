@@ -8,6 +8,7 @@ module moving::streams {
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::simple_map;
     use aptos_std::simple_map::SimpleMap;
+    use aptos_framework::event;
     use aptos_framework::fungible_asset;
     use aptos_framework::fungible_asset::FungibleStore;
     use aptos_framework::object;
@@ -56,6 +57,23 @@ module moving::streams {
     }
 
     #[event]
+    struct PoolCreatedEvent has drop, store {
+        pool_addr: address,
+    }
+
+    #[event]
+    struct PoolCreditedEvent has drop, store {
+        pool_addr: address,
+        amount: u64,
+    }
+
+    #[event]
+    struct PoolDrainedEvent has drop, store {
+        pool_addr: address,
+        amount: u64,
+    }
+
+    #[event]
     struct StreamCreatedEvent has drop, store {
         stream_id: vector<u8>
     }
@@ -101,7 +119,7 @@ module moving::streams {
         per_second: u64
     ) acquires Pool {
         let stream_id = create_stream<T>(signer, token, destination, per_second);
-        0x1::event::emit(StreamCreatedEvent { stream_id });
+        event::emit(StreamCreatedEvent { stream_id });
     }
 
     public fun create_stream<T: key>(
@@ -165,7 +183,7 @@ module moving::streams {
     ) acquires Pool {
         let pool = borrow_global_mut<Pool<Object<T>>>(signer::address_of(signer));
         let outstanding = withdraw_from_stream(pool, stream_id);
-        0x1::event::emit(WithdrawalEvent { stream_id, outstanding });
+        event::emit(WithdrawalEvent { stream_id, outstanding });
     }
 
     // Withdraws all owed to this point in time and returns outstanding if there is a deficit in the pool
@@ -263,8 +281,9 @@ module moving::streams {
 
         seed
     }
-
-    fun pool_address<T: key>(signer_addr: address, token: Object<T>): address {
+    
+    #[view]
+    public fun pool_address<T: key>(signer_addr: address, token: Object<T>): address {
         object::create_object_address(&signer_addr, pool_id(signer_addr, token))
     }
 
@@ -296,6 +315,10 @@ module moving::streams {
         fungible_asset::transfer(signer, wallet, pool.available.store, amount);
 
         move_to(&object_signer, pool);
+
+        event::emit(PoolCreatedEvent {
+            pool_addr: signer::address_of(&object_signer)
+        });
     }
 
     // Drain pool of amount to signing owner of pool
@@ -303,7 +326,8 @@ module moving::streams {
         signer: &signer, token: Object<T>, amount: u64
     ) acquires Pool {
         let signer_addr = signer::address_of(signer);
-        let pool = borrow_global_mut<Pool<Object<T>>>(pool_address(signer_addr, token));
+        let pool_addr = pool_address(signer_addr, token);
+        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
 
         let wallet =
             primary_fungible_store::primary_store(signer::address_of(signer), token);
@@ -316,6 +340,11 @@ module moving::streams {
             wallet,
             amount
         );
+
+        event::emit(PoolDrainedEvent {
+            pool_addr,
+            amount
+        });
     }
 
     // Credit pool with amount, anyone can do this
@@ -330,6 +359,11 @@ module moving::streams {
             primary_fungible_store::primary_store(signer::address_of(signer), token);
 
         fungible_asset::transfer(signer, wallet, pool.available.store, amount);
+
+        event::emit(PoolCreditedEvent {
+            pool_addr,
+            amount
+        });
     }
 
     #[view]
