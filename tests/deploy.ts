@@ -1,16 +1,8 @@
-import { execSync } from "child_process";
-import {
-    AccountAddress,
-    Aptos,
-    AptosConfig,
-    Network,
-    Account,
-    aptosCoinStructTag,
-    PrivateKey,
-    Ed25519Account
-} from "@aptos-labs/ts-sdk";
+import {execSync} from "child_process";
+import {Account, AccountAddress, Aptos, AptosApiType, AptosConfig, Ed25519Account, Network} from "@aptos-labs/ts-sdk";
 import * as fs from "node:fs";
 import * as path from "node:path";
+
 const config = new AptosConfig({ network: Network.LOCAL });
 const aptos = new Aptos(config);
 const deployAccount = Account.generate();
@@ -73,8 +65,20 @@ async function deployInternal() {
     const response = await aptos.waitForTransaction({ transactionHash: pendingTransaction.hash });
     console.log(response);
 }
+
+function generateAbi() {
+    const node = config.getRequestUrl(AptosApiType.FULLNODE);
+    const contract_address = deployAccount.accountAddress;
+    const module = "streams";
+    const url = `${node}/accounts/${contract_address}/module/${module}`;
+    const cmd = `echo \"export const ABI = $(curl ${url} | sed -n 's/.*\"abi\":\\({.*}\\).*}$/\\1/p') as const\" > abi.ts`;
+    console.log(cmd);
+    execSync(cmd, {stdio: "inherit"});
+}
+
 export async function deploy(): Promise<Ed25519Account> {
     await deployInternal();
+    generateAbi();
     console.log("Deployment complete");
     return deployAccount;
 }
