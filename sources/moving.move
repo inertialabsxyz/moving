@@ -27,6 +27,7 @@ module moving::streams {
 
     const EAMOUNT: u64 = 0x1;
     const EOWNER: u64 = 0x2;
+    const EEXISTS: u64 = 0x3;
 
     struct Store has store {
         store: Object<FungibleStore>,
@@ -185,9 +186,9 @@ module moving::streams {
     }
 
     public entry fun make_withdrawal_from_stream<T: key>(
-        signer: &signer, stream_id: vector<u8>
+        signer: &signer, pool_addr: address, stream_id: vector<u8>
     ) acquires Pool {
-        let pool = borrow_global_mut<Pool<Object<T>>>(signer::address_of(signer));
+        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
         let outstanding = withdraw_from_stream(pool, stream_id);
         event::emit(WithdrawalEvent { stream_id, outstanding });
     }
@@ -233,9 +234,20 @@ module moving::streams {
     }
 
     public entry fun close_stream<T: key>(
-        signer: &signer, stream_id: vector<u8>
+        signer: &signer, pool_addr: address, stream_id: vector<u8>
     ) acquires Pool {
-        let pool = borrow_global_mut<Pool<Object<T>>>(signer::address_of(signer));
+        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
+        assert!(
+            simple_map::contains_key(&pool.streams, &stream_id),
+            error::invalid_argument(EEXISTS)
+        );
+        let stream = simple_map::borrow(&pool.streams, &stream_id);
+        let signer_addr = signer::address_of(signer);
+        assert!(
+            stream.destination == signer_addr || pool.owner == signer_addr,
+            error::invalid_argument(EOWNER)
+        );
+
         let outstanding = cancel_stream(pool, stream_id);
         0x1::event::emit(CloseStreamEvent { stream_id, outstanding });
     }
