@@ -22,8 +22,7 @@ interface Object {
 }
 
 let deployerAccount = Account.generate();
-
-async function getSTRMAddress() : Promise<string> {
+async function getSTRMAddress() : Promise<`0x${string}`> {
     const result = await aptos.view({
         payload: {
             function: `${deployerAccount.accountAddress}::stream_coin::get_metadata`,
@@ -31,13 +30,13 @@ async function getSTRMAddress() : Promise<string> {
         }
     });
 
-    return (result[0] as Object).inner || "";
+    const addr =  (result[0] as Object).inner || "";
+    if (!addr.startsWith("0x")) throw new Error("Invalid STRM address");
+    return addr as `0x${string}`;
 }
 
-const Tokens = {
-    APT: "0xa", STRM: "",
-
-
+const Tokens : { APT: `0x${string}`; STRM: `0x${string}` } = {
+    APT: "0xa", STRM: "0x0",
 }
 
 async function migrateAccountToFA(signer: Ed25519Account) {
