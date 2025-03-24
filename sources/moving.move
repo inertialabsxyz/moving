@@ -150,6 +150,11 @@ module moving::streams {
         stream_id
     }
 
+    public entry fun settle_pool<T: key>(pool_addr: address) acquires Pool {
+        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
+        balance_pool(pool, true);
+    }
+
     public fun balance_pool<T: key>(pool: &mut Pool<Object<T>>, fail: bool) {
         let now = timestamp::now_seconds();
         // Get last time we updated and the delta from now
