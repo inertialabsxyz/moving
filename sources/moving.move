@@ -40,6 +40,7 @@ module moving::streams {
 
     // A pool for any number of streams
     struct Pool<T> has key {
+        owner: address,
         total_secs: u64,
         committed: Store,
         available: Store,
@@ -308,6 +309,7 @@ module moving::streams {
         let object_signer = object::generate_signer(&cntr_ref);
 
         let pool = Pool {
+            owner: signer_addr,
             total_secs: 0,
             available: create_store(@moving, token),
             committed: create_store(@moving, token),
