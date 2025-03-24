@@ -410,9 +410,7 @@ test("Create stream and withdraw", async () => {
     let sleepFor = 5;
     // Sleep a while extra to make sure we don't round down
     await sleep(200 + sleepFor * 1000);
-    // Settle the pool
     let poolAddress = await getPoolAddress(accounts.alice, Tokens.APT);
-    await settlePool(poolAddress);
     await makeWithdrawal(accounts.alice, poolAddress, streamId);
     let newBalance = await aptos.account.getAccountAPTAmount(accounts.bob);
     expect(newBalance - oldBalance).toBe(sleepFor * perSecond);
@@ -429,9 +427,7 @@ test("Create stream and close", async () => {
     let sleepFor = 5;
     // Sleep a while extra to make sure we don't round down
     await sleep(200 + sleepFor * 1000);
-    // Settle the pool
     let poolAddress = await getPoolAddress(accounts.alice, Tokens.APT);
-    await settlePool(poolAddress);
     await closeStream(accounts.alice, poolAddress, streamId);
     let newBalance = await aptos.account.getAccountAPTAmount(accounts.bob);
     expect(newBalance - oldBalance).toBe(sleepFor * perSecond);
