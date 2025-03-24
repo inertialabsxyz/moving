@@ -4,7 +4,7 @@ import {
     Network,
     Account,
     Ed25519Account,
-    sleep,
+    sleep, AccountAddress, UserTransactionResponse, FixedBytes,
 } from "@aptos-labs/ts-sdk";
 import {deploy} from "./deploy";
 
@@ -370,4 +370,37 @@ test("Create stream", async () => {
     expect(poolView.committed).toBe(sleepFor * perSecond);
     expect(poolView.available).toBe(poolAmount - sleepFor * perSecond);
 
-}, 60000);
+}, 10000);
+
+async function makeWithdrawal(account: Ed25519Account, poolAddress: string, streamId: string) {
+    const transaction = await aptos.transaction.build.simple({
+        sender: account.accountAddress,
+        data:{
+            function: `${deployerAccount.accountAddress}::streams::make_withdrawal_from_stream`,
+            functionArguments: [poolAddress, new FixedBytes(streamId).value],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+
+    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: account, transaction});
+    await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+}
+
+test("Create stream and withdraw", async () => {
+    let poolAmount = 100;
+    let perSecond = 1;
+    let oldBalance = await aptos.account.getAccountAPTAmount(accounts.bob);
+
+    await createPool(accounts.alice, poolAmount);
+    let streamId = await startStream(accounts.alice, Tokens.APT, accounts.bob.accountAddress, perSecond);
+    let sleepFor = 5;
+    // Sleep a while extra to make sure we don't round down
+    await sleep(200 + sleepFor * 1000);
+    // Settle the pool
+    let poolAddress = await getPoolAddress(accounts.alice, Tokens.APT);
+    await settlePool(poolAddress);
+    await makeWithdrawal(accounts.alice, poolAddress, streamId);
+    let newBalance = await aptos.account.getAccountAPTAmount(accounts.bob);
+    expect(newBalance - oldBalance).toBe(sleepFor * perSecond);
+
+}, 10000);
