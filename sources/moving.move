@@ -186,7 +186,7 @@ module moving::streams {
     }
 
     public entry fun make_withdrawal_from_stream<T: key>(
-        signer: &signer, pool_addr: address, stream_id: vector<u8>
+        pool_addr: address, stream_id: vector<u8>
     ) acquires Pool {
         let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
         let outstanding = withdraw_from_stream(pool, stream_id);
