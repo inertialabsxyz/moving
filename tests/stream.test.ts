@@ -341,24 +341,15 @@ test("Create multiple pools", async () => {
 });
 
 test("Create stream", async () => {
-    // Create the pool
     let poolAmount = 100;
     let perSecond = 1;
 
     await createPool(accounts.alice, poolAmount);
 
-    const transaction = await aptos.transaction.build.simple({
-        sender: accounts.alice.accountAddress,
-        data:{
-            function: `${deployerAccount.accountAddress}::streams::start_stream`,
-            functionArguments: [Tokens.APT, accounts.bob.accountAddress, perSecond],
-            typeArguments: ["0x1::fungible_asset::Metadata"],
-        }
-    });
+    await startStream(accounts.alice, Tokens.APT, accounts.bob.accountAddress, perSecond);
 
-    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
-    await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
     const poolObject = await getPoolObject(accounts.alice, Tokens.APT);
+
     expect(poolObject["streams"]["data"].length).toBe(1);
     let stream = poolObject["streams"]["data"][0]["value"];
     expect(stream["destination"].substring(2).padStart(64, '0')).toBe(accounts.bob.accountAddress.toStringWithoutPrefix());
@@ -367,22 +358,13 @@ test("Create stream", async () => {
     expect(stream["pool"]).toBe(poolAddress);
 
     let sleepFor = 5;
-    await sleep(sleepFor * 1000);
+    // Sleep a while extra to make sure we don't round down
+    await sleep(200 + sleepFor * 1000);
 
-    {
-        const transaction = await aptos.transaction.build.simple({
-            sender: accounts.alice.accountAddress,
-            data:{
-                function: `${deployerAccount.accountAddress}::streams::settle_pool`,
-                functionArguments: [poolAddress],
-                typeArguments: ["0x1::fungible_asset::Metadata"],
-            }
-        });
-        const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
-        await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+    // Settle the pool
+    await settlePool(poolAddress);
 
-    }
-
+    // Check we have now the amount committed
     let poolView = await viewPool(accounts.alice, Tokens.APT);
 
     expect(poolView.committed).toBe(sleepFor * perSecond);
