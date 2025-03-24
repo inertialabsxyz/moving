@@ -437,3 +437,27 @@ test("Create stream and close", async () => {
     expect(newBalance - oldBalance).toBe(sleepFor * perSecond);
 
 }, 10000);
+
+test("Create stream and cancel to have debt", async () => {
+    let poolAmount = 4;
+    let perSecond = 1;
+    let oldBalance = await aptos.account.getAccountAPTAmount(accounts.bob);
+
+    await createPool(accounts.alice, poolAmount);
+    let streamId = await startStream(accounts.alice, Tokens.APT, accounts.bob.accountAddress, perSecond);
+    // Sleep to create a debt equivalent to one second
+    let sleepFor = poolAmount + perSecond;
+    // Sleep a while extra to make sure we don't round down
+    await sleep(200 + sleepFor * 1000);
+    // Settle the pool
+    let poolAddress = await getPoolAddress(accounts.alice, Tokens.APT);
+    await closeStream(accounts.alice, poolAddress, streamId);
+    let newBalance = await aptos.account.getAccountAPTAmount(accounts.bob);
+    // All of the pool would be paid to settle and would leave a debt
+    expect(newBalance - oldBalance).toBe(poolAmount);
+    const pool = await getPoolObject(accounts.alice, Tokens.APT);
+    const debt = pool["debts"][0];
+    expect(debt["destination"]).toBe(accounts.bob.accountAddress.toString());
+    expect(parseInt(debt["amount"])).toBe(perSecond);
+}, 10000);
+
