@@ -79,7 +79,7 @@ beforeAll(async () => {
     Tokens.STRM = await getSTRMAddress();
 }, 60000);
 
-async function getPoolAddress(account: Ed25519Account, token: string) : Promise<MoveValue> {
+async function getPoolAddress(account: Ed25519Account, token: string) : Promise<`0x${string}`> {
     const result = await aptos.view({
         payload: {
             function: `${deployerAccount.accountAddress}::streams::pool_address`,
@@ -90,7 +90,9 @@ async function getPoolAddress(account: Ed25519Account, token: string) : Promise<
 
     expect(result.length).toBe(1);
 
-    return result[0]?.toString() || "";
+    const addr =  result[0]?.toString() || "";
+    if (!addr.startsWith("0x")) throw new Error("Invalid Pool address");
+    return addr as `0x${string}`;
 }
 
 async function getPoolObject(account: Ed25519Account, token: string) {
