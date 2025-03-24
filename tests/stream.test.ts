@@ -3,19 +3,20 @@ import {
     AptosConfig,
     Network,
     Account,
-    Ed25519Account, MoveValue,
+    Ed25519Account,
+    sleep,
 } from "@aptos-labs/ts-sdk";
 import {deploy} from "./deploy";
+
+const MINT_AMOUNT = 100_000_000;
 const config = new AptosConfig({ network: Network.LOCAL });
 const aptos = new Aptos(config);
-
 const accounts = {
     alice: Account.generate(),
     bob: Account.generate(),
     charlie: Account.generate(),
     dave: Account.generate()
 };
-const MINT_AMOUNT = 100_000_000;
 
 interface Object {
     inner: string
