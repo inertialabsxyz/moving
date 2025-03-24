@@ -283,6 +283,36 @@ async function viewPool(account: Ed25519Account, token: string) : Promise<PoolVi
     return { available, committed };
 }
 
+async function settlePool(poolAddress: string) {
+    const transaction = await aptos.transaction.build.simple({
+        sender: accounts.alice.accountAddress,
+        data:{
+            function: `${deployerAccount.accountAddress}::streams::settle_pool`,
+            functionArguments: [poolAddress],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
+    await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+}
+
+async function startStream(account: Ed25519Account, token: string, destination: AccountAddress, perSecond: number) : Promise<string> {
+    const transaction = await aptos.transaction.build.simple({
+        sender: account.accountAddress,
+        data:{
+            function: `${deployerAccount.accountAddress}::streams::start_stream`,
+            functionArguments: [token, destination, perSecond],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+
+    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
+    const executedTransaction = await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+    const streamId = (executedTransaction as UserTransactionResponse).events[0].data.stream_id;
+
+    return streamId;
+}
+
 test("View a pool", async () => {
     // Create the pool
     let poolAmount = 100;
