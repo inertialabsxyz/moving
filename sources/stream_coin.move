@@ -1,5 +1,12 @@
 module moving::stream_coin {
-    use aptos_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset};
+    use aptos_framework::fungible_asset::{
+        Self,
+        MintRef,
+        TransferRef,
+        BurnRef,
+        Metadata,
+        FungibleAsset
+    };
     use aptos_framework::object::{Self, Object};
     use aptos_framework::primary_fungible_store;
     use std::error;
@@ -17,7 +24,7 @@ module moving::stream_coin {
     struct ManagedFungibleAsset has key {
         mint_ref: MintRef,
         transfer_ref: TransferRef,
-        burn_ref: BurnRef,
+        burn_ref: BurnRef
     }
 
     /// Initialize metadata object and store the refs.
@@ -31,7 +38,7 @@ module moving::stream_coin {
             utf8(ASSET_SYMBOL), /* symbol */
             8, /* decimals */
             utf8(b"http://example.com/favicon.ico"), /* icon */
-            utf8(b"http://example.com"), /* project */
+            utf8(b"http://example.com") /* project */
         );
 
         // Create mint/burn/transfer refs to allow creator to manage the fungible asset.
@@ -42,7 +49,8 @@ module moving::stream_coin {
         move_to(
             &metadata_object_signer,
             ManagedFungibleAsset { mint_ref, transfer_ref, burn_ref }
-        )// <:!:initialize
+        )
+        // <:!:initialize
     }
 
     #[view]
@@ -59,11 +67,18 @@ module moving::stream_coin {
         let managed_fungible_asset = authorized_borrow_refs(admin, asset);
         let to_wallet = primary_fungible_store::ensure_primary_store_exists(to, asset);
         let fa = fungible_asset::mint(&managed_fungible_asset.mint_ref, amount);
-        fungible_asset::deposit_with_ref(&managed_fungible_asset.transfer_ref, to_wallet, fa);
-    }// <:!:mint_to
+        fungible_asset::deposit_with_ref(
+            &managed_fungible_asset.transfer_ref, to_wallet, fa
+        );
+    } // <:!:mint_to
 
     /// Transfer as the owner of metadata object ignoring `frozen` field.
-    public entry fun transfer(admin: &signer, from: address, to: address, amount: u64) acquires ManagedFungibleAsset {
+    public entry fun transfer(
+        admin: &signer,
+        from: address,
+        to: address,
+        amount: u64
+    ) acquires ManagedFungibleAsset {
         let asset = get_metadata();
         let transfer_ref = &authorized_borrow_refs(admin, asset).transfer_ref;
         let from_wallet = primary_fungible_store::primary_store(from, asset);
@@ -96,7 +111,9 @@ module moving::stream_coin {
     }
 
     /// Withdraw as the owner of metadata object ignoring `frozen` field.
-    public fun withdraw(admin: &signer, amount: u64, from: address): FungibleAsset acquires ManagedFungibleAsset {
+    public fun withdraw(
+        admin: &signer, amount: u64, from: address
+    ): FungibleAsset acquires ManagedFungibleAsset {
         let asset = get_metadata();
         let transfer_ref = &authorized_borrow_refs(admin, asset).transfer_ref;
         let from_wallet = primary_fungible_store::primary_store(from, asset);
@@ -114,17 +131,17 @@ module moving::stream_coin {
     /// Borrow the immutable reference of the refs of `metadata`.
     /// This validates that the signer is the metadata object's owner.
     inline fun authorized_borrow_refs(
-        owner: &signer,
-        asset: Object<Metadata>,
+        owner: &signer, asset: Object<Metadata>
     ): &ManagedFungibleAsset acquires ManagedFungibleAsset {
-        assert!(object::is_owner(asset, signer::address_of(owner)), error::permission_denied(ENOT_OWNER));
+        assert!(
+            object::is_owner(asset, signer::address_of(owner)),
+            error::permission_denied(ENOT_OWNER)
+        );
         borrow_global<ManagedFungibleAsset>(object::object_address(&asset))
     }
 
     #[test(creator = @moving)]
-    fun test_basic_flow(
-        creator: &signer,
-    ) acquires ManagedFungibleAsset {
+    fun test_basic_flow(creator: &signer) acquires ManagedFungibleAsset {
         init_module(creator);
         let creator_address = signer::address_of(creator);
         let aaron_address = @0xface;
@@ -144,10 +161,7 @@ module moving::stream_coin {
 
     #[test(creator = @moving, aaron = @0xface)]
     #[expected_failure(abort_code = 0x50001, location = Self)]
-    fun test_permission_denied(
-        creator: &signer,
-        aaron: &signer
-    ) acquires ManagedFungibleAsset {
+    fun test_permission_denied(creator: &signer, aaron: &signer) acquires ManagedFungibleAsset {
         init_module(creator);
         let creator_address = signer::address_of(creator);
         mint(aaron, creator_address, 100);

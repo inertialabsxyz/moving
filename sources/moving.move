@@ -60,19 +60,19 @@ module moving::streams {
 
     #[event]
     struct PoolCreatedEvent has drop, store {
-        pool_addr: address,
+        pool_addr: address
     }
 
     #[event]
     struct PoolCreditedEvent has drop, store {
         pool_addr: address,
-        amount: u64,
+        amount: u64
     }
 
     #[event]
     struct PoolDrainedEvent has drop, store {
         pool_addr: address,
-        amount: u64,
+        amount: u64
     }
 
     #[event]
@@ -299,7 +299,7 @@ module moving::streams {
 
         seed
     }
-    
+
     #[view]
     public fun pool_address<T: key>(signer_addr: address, token: Object<T>): address {
         object::create_object_address(&signer_addr, pool_id(signer_addr, token))
@@ -335,9 +335,7 @@ module moving::streams {
 
         move_to(&object_signer, pool);
 
-        event::emit(PoolCreatedEvent {
-            pool_addr: signer::address_of(&object_signer)
-        });
+        event::emit(PoolCreatedEvent { pool_addr: signer::address_of(&object_signer) });
     }
 
     // Drain pool of amount to signing owner of pool
@@ -360,10 +358,7 @@ module moving::streams {
             amount
         );
 
-        event::emit(PoolDrainedEvent {
-            pool_addr,
-            amount
-        });
+        event::emit(PoolDrainedEvent { pool_addr, amount });
     }
 
     // Credit pool with amount, anyone can do this
@@ -379,10 +374,7 @@ module moving::streams {
 
         fungible_asset::transfer(signer, wallet, pool.available.store, amount);
 
-        event::emit(PoolCreditedEvent {
-            pool_addr,
-            amount
-        });
+        event::emit(PoolCreditedEvent { pool_addr, amount });
     }
 
     #[view]
