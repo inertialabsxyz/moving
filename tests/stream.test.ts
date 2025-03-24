@@ -74,11 +74,6 @@ async function setupAccounts(accounts: Array<Ed25519Account>) {
         await mintSTRM(deployerAccount, account);
     }
 }
-beforeAll(async () => {
-    deployerAccount = await deploy();
-    await setupAccounts(Object.values(accounts));
-    Tokens.STRM = await getSTRMAddress();
-}, 60000);
 
 async function getPoolAddress(account: Ed25519Account, token: string) : Promise<`0x${string}`> {
     const result = await aptos.view({
@@ -116,6 +111,62 @@ async function createPool(account: Ed25519Account, poolAmount: number, token: st
     const pendingTransaction = await aptos.signAndSubmitTransaction({signer: account, transaction});
     await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
 }
+
+async function viewPool(account: Ed25519Account, token: string) : Promise<PoolView> {
+    const poolAddr = await getPoolAddress(accounts.alice, Tokens.APT);
+    let poolAddress = poolAddr?.toString() || "";
+
+    const result = await aptos.view({
+        payload: {
+            function: `${deployerAccount.accountAddress}::streams::view_pool`,
+            functionArguments: [poolAddress],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+
+    const [available, committed] = result.map(Number) as [number, number];
+    return { available, committed };
+}
+
+async function settlePool(poolAddress: string) {
+    const transaction = await aptos.transaction.build.simple({
+        sender: accounts.alice.accountAddress,
+        data:{
+            function: `${deployerAccount.accountAddress}::streams::settle_pool`,
+            functionArguments: [poolAddress],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
+    await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+}
+
+async function startStream(account: Ed25519Account, token: string, destination: AccountAddress, perSecond: number) : Promise<string> {
+    const transaction = await aptos.transaction.build.simple({
+        sender: account.accountAddress,
+        data:{
+            function: `${deployerAccount.accountAddress}::streams::start_stream`,
+            functionArguments: [token, destination, perSecond],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+
+    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
+    const executedTransaction = await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+    const streamId = (executedTransaction as UserTransactionResponse).events[0].data.stream_id;
+
+    return streamId;
+}
+interface PoolView {
+    available: number,
+    committed: number,
+}
+
+beforeAll(async () => {
+    deployerAccount = await deploy();
+    await setupAccounts(Object.values(accounts));
+    Tokens.STRM = await getSTRMAddress();
+}, 60000);
 
 // https://github.com/aptos-labs/aptos-ts-sdk/tree/main/examples/typescript
 test("Create a pool", async () => {
@@ -261,57 +312,6 @@ test("Credit the pool", async () => {
         expect(availableStore["balance"]).toBe(poolAmount.toString());
     }
 });
-
-interface PoolView {
-    available: number,
-    committed: number,
-}
-
-async function viewPool(account: Ed25519Account, token: string) : Promise<PoolView> {
-    const poolAddr = await getPoolAddress(accounts.alice, Tokens.APT);
-    let poolAddress = poolAddr?.toString() || "";
-
-    const result = await aptos.view({
-        payload: {
-            function: `${deployerAccount.accountAddress}::streams::view_pool`,
-            functionArguments: [poolAddress],
-            typeArguments: ["0x1::fungible_asset::Metadata"],
-        }
-    });
-
-    const [available, committed] = result.map(Number) as [number, number];
-    return { available, committed };
-}
-
-async function settlePool(poolAddress: string) {
-    const transaction = await aptos.transaction.build.simple({
-        sender: accounts.alice.accountAddress,
-        data:{
-            function: `${deployerAccount.accountAddress}::streams::settle_pool`,
-            functionArguments: [poolAddress],
-            typeArguments: ["0x1::fungible_asset::Metadata"],
-        }
-    });
-    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
-    await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
-}
-
-async function startStream(account: Ed25519Account, token: string, destination: AccountAddress, perSecond: number) : Promise<string> {
-    const transaction = await aptos.transaction.build.simple({
-        sender: account.accountAddress,
-        data:{
-            function: `${deployerAccount.accountAddress}::streams::start_stream`,
-            functionArguments: [token, destination, perSecond],
-            typeArguments: ["0x1::fungible_asset::Metadata"],
-        }
-    });
-
-    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
-    const executedTransaction = await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
-    const streamId = (executedTransaction as UserTransactionResponse).events[0].data.stream_id;
-
-    return streamId;
-}
 
 test("View a pool", async () => {
     // Create the pool
