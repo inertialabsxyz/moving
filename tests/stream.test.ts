@@ -136,7 +136,7 @@ async function createPool(account: Ed25519Account, poolAmount: number, token: st
 }
 
 async function viewPool(account: Ed25519Account, token: string) : Promise<PoolView> {
-    const poolAddr = await getPoolAddress(accounts.alice, Tokens.APT);
+    const poolAddr = await getPoolAddress(account, token);
     let poolAddress = poolAddr?.toString() || "";
 
     const result = await aptos.view({
