@@ -18,7 +18,6 @@ function compilePackage(
         .join(" ");
     // Assume-yes automatically overwrites the previous compiled version, only do this if you are sure you want to overwrite the previous version.
     const compileCommand = `aptos move build-publish-payload --json-output-file ${outputFile} --package-dir ${packageDir} --named-addresses ${addressArg} --assume-yes`;
-    console.log(compileCommand);
     execSync(compileCommand, { stdio: "inherit" });
 }
 
@@ -62,8 +61,7 @@ async function deployInternal() {
         transaction,
     });
 
-    const response = await aptos.waitForTransaction({ transactionHash: pendingTransaction.hash });
-    console.log(response);
+    await aptos.waitForTransaction({ transactionHash: pendingTransaction.hash });
 }
 
 function generateAbi() {
@@ -72,14 +70,12 @@ function generateAbi() {
     const module = "streams";
     const url = `${node}/accounts/${contract_address}/module/${module}`;
     const cmd = `echo \"export const ABI = $(curl ${url} | sed -n 's/.*\"abi\":\\({.*}\\).*}$/\\1/p') as const\" > abi.ts`;
-    console.log(cmd);
     execSync(cmd, {stdio: "inherit"});
 }
 
 export async function deploy(): Promise<Ed25519Account> {
     await deployInternal();
     generateAbi();
-    console.log("Deployment complete");
     return deployAccount;
 }
 
