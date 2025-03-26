@@ -151,16 +151,16 @@ async function viewPool(account: Ed25519Account, token: string) : Promise<PoolVi
     return { available, committed, lastBalance };
 }
 
-async function settlePool(poolAddress: string) {
+async function settlePool(account: Ed25519Account, poolAddress: string) {
     const transaction = await aptos.transaction.build.simple({
-        sender: accounts.alice.accountAddress,
+        sender: account.accountAddress,
         data:{
             function: `${deployerAccount.accountAddress}::streams::settle_pool`,
             functionArguments: [poolAddress],
             typeArguments: ["0x1::fungible_asset::Metadata"],
         }
     });
-    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
+    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: account, transaction});
     await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
 }
 
