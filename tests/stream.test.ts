@@ -174,11 +174,9 @@ async function startStream(account: Ed25519Account, token: string, destination: 
         }
     });
 
-    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
+    const pendingTransaction = await aptos.signAndSubmitTransaction({signer: account, transaction});
     const executedTransaction = await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
-    const streamId = (executedTransaction as UserTransactionResponse).events[0].data.stream_id;
-
-    return streamId;
+    return (executedTransaction as UserTransactionResponse).events[0].data.stream_id;
 }
 
 interface PoolView {
