@@ -378,11 +378,12 @@ module moving::streams {
     }
 
     #[view]
-    public fun view_pool<T: key>(pool_addr: address): (u64, u64) acquires Pool {
+    public fun view_pool<T: key>(pool_addr: address): (u64, u64, u64) acquires Pool {
         let pool = borrow_global<Pool<Object<T>>>(pool_addr);
         (
             fungible_asset::balance(pool.available.store),
-            fungible_asset::balance(pool.committed.store)
+            fungible_asset::balance(pool.committed.store),
+            pool.last_balance,
         )
     }
 
@@ -486,7 +487,7 @@ module moving::streams {
             primary_fungible_store::balance(stranger_addr, metadata)
                 == (mint_amount - credit_amount)
         );
-        let (balance, _) = view_pool<TestToken>(pool_addr);
+        let (balance, _, _) = view_pool<TestToken>(pool_addr);
         assert!(balance == pool_amount + credit_amount * 2);
     }
 
@@ -501,7 +502,7 @@ module moving::streams {
         let pool_amount = 10;
         mint(&mint_ref, signer_addr, mint_amount);
         create_pool(signer, metadata, pool_amount);
-        let (balance, committed) =
+        let (balance, committed, _) =
             view_pool<TestToken>(pool_address(signer_addr, metadata));
         assert!(balance == pool_amount && committed == 0);
     }
