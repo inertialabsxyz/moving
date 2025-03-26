@@ -238,7 +238,7 @@ test("Create a pool", async () => {
         const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction: transferFA});
         await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
 
-        throw new Error("Expected failure of transaction");
+        expect(false).toBeTruthy();
     } catch (error: any) {
         expect(error["transaction"]["vm_status"]).toContain("ENOT_STORE_OWNER(0x50008)");
     }
@@ -293,7 +293,7 @@ test("Excess Drain from the pool", async () => {
         });
         const pendingTransaction = await aptos.signAndSubmitTransaction({signer: accounts.alice, transaction});
         await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
-        throw new Error("Expected failure of transaction");
+        expect(false).toBeTruthy();
     } catch (error: any) {
         console.log(error["transaction"]["vm_status"]);
         expect(error["transaction"]["vm_status"]).toContain("EINSUFFICIENT_BALANCE(0x10004)");
