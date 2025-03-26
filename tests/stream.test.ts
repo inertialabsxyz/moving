@@ -100,6 +100,8 @@ async function getPoolObject(account: Ed25519Account, token: string) {
 }
 
 async function createPool(account: Ed25519Account, poolAmount: number, token: string = Tokens.APT) {
+
+    let oldBalance = await getFungibleAssetBalance(account, token);
     const transaction = await aptos.transaction.build.simple({
         sender: account.accountAddress,
         data: {
@@ -109,7 +111,16 @@ async function createPool(account: Ed25519Account, poolAmount: number, token: st
         },
     });
     const pendingTransaction = await aptos.signAndSubmitTransaction({signer: account, transaction});
-    await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+    const executedTransaction = await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
+    let gasCost = 0;
+    if (token === Tokens.APT) {
+        gasCost = parseInt(executedTransaction.gas_used) * (await aptos.getGasPriceEstimation()).gas_estimate;
+    }
+    // Verify assets have left wallet
+    let newBalance = await getFungibleAssetBalance(account, token);
+    expect(newBalance).toBe(oldBalance - poolAmount - gasCost);
+
+    return await getPoolObject(account, token);
 }
 
 async function viewPool(account: Ed25519Account, token: string) : Promise<PoolView> {
