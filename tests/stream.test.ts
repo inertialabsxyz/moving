@@ -67,12 +67,24 @@ async function mintSTRM(signer: Ed25519Account, account: Ed25519Account) {
     await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
 }
 
-async function setupAccounts(accounts: Array<Ed25519Account>) {
-    for (const account of accounts) {
-        await aptos.fundAccount({accountAddress: account.accountAddress, amount: MINT_AMOUNT});
-        await migrateAccountToFA(account);
-        await mintSTRM(deployerAccount, account);
-    }
+async function getFungibleAssetBalance(account: Ed25519Account, token: string = Tokens.APT) : Promise<number> {
+    let result = await aptos.view({
+        payload: {
+            function: "0x1::primary_fungible_store::balance",
+            functionArguments: [`${account.accountAddress}`, token],
+            typeArguments: ["0x1::fungible_asset::Metadata"],
+        }
+    });
+    const [balance] = result.map(Number) as [number];
+    return balance;
+}
+
+async function createAccount() : Promise<Ed25519Account> {
+    const account = Account.generate();
+    await aptos.fundAccount({accountAddress: account.accountAddress, amount: MINT_AMOUNT});
+    await migrateAccountToFA(account);
+    await mintSTRM(deployerAccount, account);
+    return account;
 }
 
 async function getPoolAddress(account: Ed25519Account, token: string) : Promise<`0x${string}`> {
