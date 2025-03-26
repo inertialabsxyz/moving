@@ -147,8 +147,8 @@ async function viewPool(account: Ed25519Account, token: string) : Promise<PoolVi
         }
     });
 
-    const [available, committed] = result.map(Number) as [number, number];
-    return { available, committed };
+    const [available, committed, lastBalance] = result.map(Number) as [number, number, number];
+    return { available, committed, lastBalance };
 }
 
 async function settlePool(poolAddress: string) {
@@ -180,9 +180,11 @@ async function startStream(account: Ed25519Account, token: string, destination: 
 
     return streamId;
 }
+
 interface PoolView {
     available: number,
     committed: number,
+    lastBalance: number,
 }
 
 beforeAll(async () => {
