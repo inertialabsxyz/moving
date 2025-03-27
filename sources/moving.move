@@ -58,6 +58,7 @@ module moving::streams {
     }
 
     struct Stream has key, store, drop {
+        created: u64,
         pool: address,
         destination: address,
         per_second: u64,
@@ -145,15 +146,16 @@ module moving::streams {
         let pool_addr = pool_address(signer::address_of(signer), token);
         let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
         let stream_id = get_stream_id(pool_addr, destination, per_second, pool.token);
-
+        let now = timestamp::now_seconds();
         simple_map::add(
             &mut pool.streams,
             stream_id,
             Stream {
+                created: now,
                 pool: pool_addr,
                 destination,
                 per_second,
-                last_update: timestamp::now_seconds()
+                last_update: now
             }
         );
 
