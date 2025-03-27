@@ -53,7 +53,7 @@ module moving::streams {
         available: Store,
         streams: SimpleMap<vector<u8>, Stream>,
         token: T,
-        last_balance: u64,
+        balance_updated: u64,
         debts: vector<Debt>
     }
 
@@ -172,7 +172,7 @@ module moving::streams {
     public fun balance_pool<T: key>(pool: &mut Pool<Object<T>>, fail: bool) {
         let now = timestamp::now_seconds();
         // Get last time we updated and the delta from now
-        let delta = now - pool.last_balance;
+        let delta = now - pool.balance_updated;
         // Move from available to committed
         let to_move = pool.total_secs * delta;
         // Get signer for available store
@@ -194,7 +194,7 @@ module moving::streams {
             to_move
         );
         // Update pool timestamps
-        pool.last_balance = now;
+        pool.balance_updated = now;
     }
 
     public entry fun make_withdrawal_from_stream<T: key>(
@@ -348,7 +348,7 @@ module moving::streams {
             committed: create_store(@moving, token),
             streams: simple_map::new(),
             token,
-            last_balance: now,
+            balance_updated: now,
             debts: vector::empty<Debt>()
         };
 
@@ -417,7 +417,7 @@ module moving::streams {
             pool.name,
             fungible_asset::balance(pool.available.store),
             fungible_asset::balance(pool.committed.store),
-            pool.last_balance
+            pool.balance_updated
         )
     }
 
