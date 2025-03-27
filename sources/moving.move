@@ -4,6 +4,7 @@ module moving::streams {
     use std::bcs;
     use std::error;
     use std::signer;
+    use std::string::String;
     use std::vector;
     use aptos_std::aptos_hash::keccak256;
     use aptos_std::simple_map;
@@ -15,6 +16,8 @@ module moving::streams {
     use aptos_framework::object::{Object, ExtendRef};
     use aptos_framework::primary_fungible_store;
     use aptos_framework::timestamp;
+    #[test_only]
+    use std::string;
     #[test_only]
     use aptos_framework::fungible_asset::{create_test_token, TestToken};
     #[test_only]
@@ -28,6 +31,7 @@ module moving::streams {
     const EAMOUNT: u64 = 0x1;
     const EOWNER: u64 = 0x2;
     const EEXISTS: u64 = 0x3;
+    const ENAME: u64 = 0x4;
 
     struct Store has store {
         store: Object<FungibleStore>,
@@ -41,6 +45,7 @@ module moving::streams {
 
     // A pool for any number of streams
     struct Pool<T> has key {
+        name: String,
         owner: address,
         total_secs: u64,
         committed: Store,
@@ -73,6 +78,12 @@ module moving::streams {
     struct PoolDrainedEvent has drop, store {
         pool_addr: address,
         amount: u64
+    }
+
+    #[event]
+    struct PoolUpdatedEvent has drop, store {
+        pool_addr: address,
+        new_name: String
     }
 
     #[event]
@@ -306,9 +317,14 @@ module moving::streams {
     }
 
     public entry fun create_pool<T: key>(
-        signer: &signer, token: Object<T>, amount: u64
+        signer: &signer,
+        name: String,
+        token: Object<T>,
+        amount: u64
     ) {
         assert!(amount > 0, error::invalid_argument(EAMOUNT));
+        assert!(std::string::length(&name) > 2, error::invalid_argument(ENAME));
+
         let signer_addr = signer::address_of(signer);
 
         primary_fungible_store::ensure_primary_store_exists(signer_addr, token);
@@ -321,6 +337,7 @@ module moving::streams {
         let object_signer = object::generate_signer(&cntr_ref);
 
         let pool = Pool {
+            name,
             owner: signer_addr,
             total_secs: 0,
             available: create_store(@moving, token),
@@ -336,6 +353,18 @@ module moving::streams {
         move_to(&object_signer, pool);
 
         event::emit(PoolCreatedEvent { pool_addr: signer::address_of(&object_signer) });
+    }
+
+    public entry fun update_pool<T: key>(
+        signer: &signer, new_name: String, token: Object<T>
+    ) acquires Pool {
+        assert!(std::string::length(&new_name) > 2, error::invalid_argument(ENAME));
+        let signer_addr = signer::address_of(signer);
+        let pool_addr = pool_address(signer_addr, token);
+        let pool = borrow_global_mut<Pool<Object<T>>>(pool_addr);
+        pool.name = new_name;
+
+        event::emit(PoolUpdatedEvent { pool_addr, new_name });
     }
 
     // Drain pool of amount to signing owner of pool
@@ -378,12 +407,13 @@ module moving::streams {
     }
 
     #[view]
-    public fun view_pool<T: key>(pool_addr: address): (u64, u64, u64) acquires Pool {
+    public fun view_pool<T: key>(pool_addr: address): (String, u64, u64, u64) acquires Pool {
         let pool = borrow_global<Pool<Object<T>>>(pool_addr);
         (
+            pool.name,
             fungible_asset::balance(pool.available.store),
             fungible_asset::balance(pool.committed.store),
-            pool.last_balance,
+            pool.last_balance
         )
     }
 
@@ -397,10 +427,11 @@ module moving::streams {
         let signer_addr = signer::address_of(signer);
         let mint_amount = 100;
         let pool_amount = 10;
+        let pool_name = string::utf8(b"Payroll");
 
         mint(&mint_ref, signer_addr, mint_amount);
         assert!(primary_fungible_store::balance(signer_addr, metadata) == mint_amount, 1);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
 
         // Verify we have moved the assets
         assert!(
@@ -425,6 +456,24 @@ module moving::streams {
     }
 
     #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
+    fun test_update_pool(signer: &signer, aptos_framework: &signer) acquires Pool {
+        timestamp::set_time_has_started_for_testing(aptos_framework);
+        let (creator_ref, metadata) = create_test_token(signer);
+        let (mint_ref, _, _) =
+            init_test_metadata_with_primary_store_enabled(&creator_ref);
+        let signer_addr = signer::address_of(signer);
+        let mint_amount = 100;
+        let pool_amount = 10;
+        let pool_name = string::utf8(b"Payroll");
+        mint(&mint_ref, signer_addr, mint_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
+        pool_name = string::utf8(b"Updated");
+        update_pool(signer, pool_name, metadata);
+        let (name, _, _, _) = view_pool<TestToken>(pool_address(signer_addr, metadata));
+        assert!(string::bytes(&pool_name) == string::bytes(&name));
+    }
+
+    #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
     fun test_drain_pool(signer: &signer, aptos_framework: &signer) acquires Pool {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
@@ -434,8 +483,9 @@ module moving::streams {
         let mint_amount = 100;
         let pool_amount = 10;
         let drain_amount = 5;
+        let pool_name = string::utf8(b"Payroll");
         mint(&mint_ref, signer_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
         drain_pool(signer, metadata, drain_amount);
         assert!(
             primary_fungible_store::balance(signer::address_of(signer), metadata)
@@ -454,8 +504,9 @@ module moving::streams {
         let mint_amount = 100;
         let pool_amount = 10;
         let drain_amount = pool_amount + 1;
+        let pool_name = string::utf8(b"Payroll");
         mint(&mint_ref, signer_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
         // expected failure
         drain_pool(signer, metadata, drain_amount);
     }
@@ -473,9 +524,10 @@ module moving::streams {
         let mint_amount = 50;
         let pool_amount = 10;
         let credit_amount = 5;
+        let pool_name = string::utf8(b"Payroll");
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, stranger_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
         let pool_addr = pool_address(signer_addr, metadata);
         credit_pool(signer, pool_addr, metadata, credit_amount);
         assert!(
@@ -487,7 +539,7 @@ module moving::streams {
             primary_fungible_store::balance(stranger_addr, metadata)
                 == (mint_amount - credit_amount)
         );
-        let (balance, _, _) = view_pool<TestToken>(pool_addr);
+        let (_, balance, _, _) = view_pool<TestToken>(pool_addr);
         assert!(balance == pool_amount + credit_amount * 2);
     }
 
@@ -500,11 +552,18 @@ module moving::streams {
         let signer_addr = signer::address_of(signer);
         let mint_amount = 100;
         let pool_amount = 10;
+        let name = b"Payroll";
         mint(&mint_ref, signer_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
-        let (balance, committed, _) =
+        create_pool(
+            signer,
+            string::utf8(name),
+            metadata,
+            pool_amount
+        );
+        let (pool_name, balance, committed, _) =
             view_pool<TestToken>(pool_address(signer_addr, metadata));
         assert!(balance == pool_amount && committed == 0);
+        assert!(&name == string::bytes(&pool_name));
     }
 
     #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
@@ -519,17 +578,18 @@ module moving::streams {
         let signer_addr = signer::address_of(signer);
         let mint_amount = 100;
         let pool_amount = 10;
+        let pool_name = string::utf8(b"Payroll");
 
         mint(&mint_ref, signer_addr, mint_amount);
         assert!(primary_fungible_store::balance(signer_addr, metadata) == mint_amount, 1);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
 
         // Create a pool with the `StreamToken`
         let (creator_ref, metadata) = stream_token::create_test_token(signer);
         let (mint_ref, _, _) =
             stream_token::init_test_metadata_with_primary_store_enabled(&creator_ref);
         mint(&mint_ref, signer_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
     }
 
     // Create a stream, jump some time and just balance pool to confirm we have the correct committed amount
@@ -546,8 +606,9 @@ module moving::streams {
         let pool_amount = 10;
         let per_second = 1;
         let time_jump = 5;
+        let pool_name = string::utf8(b"Payroll");
         mint(&mint_ref, signer_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
         create_stream<TestToken>(
             signer,
             metadata,
@@ -580,9 +641,10 @@ module moving::streams {
         let pool_amount = 10;
         let per_second = 1;
         let time_jump = 5;
+        let pool_name = string::utf8(b"Payroll");
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, destination_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
         let stream_id =
             create_stream<TestToken>(signer, metadata, destination_addr, per_second);
         timestamp::update_global_time_for_test_secs(time_jump);
@@ -614,9 +676,10 @@ module moving::streams {
         let pool_amount = 10;
         let per_second = 1;
         let time_jump = 5;
+        let pool_name = string::utf8(b"Payroll");
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, destination_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
         let stream_id =
             create_stream<TestToken>(signer, metadata, destination_addr, per_second);
         timestamp::update_global_time_for_test_secs(time_jump);
@@ -650,9 +713,10 @@ module moving::streams {
         let per_second = 1;
         let debt = 1;
         let time_jump = pool_amount * per_second + debt;
+        let pool_name = string::utf8(b"Payroll");
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, destination_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
         let stream_id =
             create_stream<TestToken>(signer, metadata, destination_addr, per_second);
         timestamp::update_global_time_for_test_secs(time_jump);
@@ -684,9 +748,10 @@ module moving::streams {
         let per_second = 1;
         let debt = 1;
         let time_jump = pool_amount * per_second + debt;
+        let pool_name = string::utf8(b"Payroll");
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, destination_addr, mint_amount);
-        create_pool(signer, metadata, pool_amount);
+        create_pool(signer, pool_name, metadata, pool_amount);
         let stream_id =
             create_stream<TestToken>(signer, metadata, destination_addr, per_second);
         timestamp::update_global_time_for_test_secs(time_jump);
