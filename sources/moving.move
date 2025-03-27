@@ -46,6 +46,7 @@ module moving::streams {
     // A pool for any number of streams
     struct Pool<T> has key {
         name: String,
+        created: u64,
         owner: address,
         total_secs: u64,
         committed: Store,
@@ -336,15 +337,18 @@ module moving::streams {
 
         let object_signer = object::generate_signer(&cntr_ref);
 
+        let now = timestamp::now_seconds();
+
         let pool = Pool {
             name,
+            created: now,
             owner: signer_addr,
             total_secs: 0,
             available: create_store(@moving, token),
             committed: create_store(@moving, token),
             streams: simple_map::new(),
             token,
-            last_balance: timestamp::now_seconds(),
+            last_balance: now,
             debts: vector::empty<Debt>()
         };
 
