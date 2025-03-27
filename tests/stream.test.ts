@@ -106,14 +106,19 @@ async function getPoolObject(account: Ed25519Account, token: string) {
     return await aptos.getAccountResource({accountAddress: poolAddress, resourceType: type});
 }
 
-async function createPool(account: Ed25519Account, poolAmount: number, token: string = Tokens.APT) {
+async function createPool({account, poolAmount, name = "Pool", token = Tokens.APT}: {
+    account: Ed25519Account,
+    poolAmount: number,
+    name?: string,
+    token?: string
+}) {
 
     let oldBalance = await getFungibleAssetBalance(account, token);
     const transaction = await aptos.transaction.build.simple({
         sender: account.accountAddress,
         data: {
             function: `${deployerAccount.accountAddress}::streams::create_pool`,
-            functionArguments: [token, poolAmount],
+            functionArguments: [name, token, poolAmount],
             typeArguments: ["0x1::fungible_asset::Metadata"],
         },
     });
@@ -142,8 +147,12 @@ async function viewPool(account: Ed25519Account, token: string) : Promise<PoolVi
         }
     });
 
-    const [available, committed, lastBalance] = result.map(Number) as [number, number, number];
-    return { available, committed, lastBalance };
+    const [nameRaw, availableRaw, committedRaw, lastBalanceRaw] = result;
+    const name = nameRaw as string;
+    const available = Number(availableRaw);
+    const committed = Number(committedRaw);
+    const lastBalance = Number(lastBalanceRaw);
+    return { name, available, committed, lastBalance };
 }
 
 async function settlePool(account: Ed25519Account, poolAddress: string) {
@@ -175,6 +184,7 @@ async function startStream(account: Ed25519Account, token: string, destination: 
 }
 
 interface PoolView {
+    name: string,
     available: number,
     committed: number,
     lastBalance: number,
@@ -188,7 +198,7 @@ beforeAll(async () => {
 test("Create a pool", async () => {
     let poolAmount = 100;
     let alice = await createAccount();
-    const poolObject = await createPool(alice, poolAmount);
+    const poolObject = await createPool({account: alice, poolAmount: poolAmount});
     const availableStoreAddress = poolObject["available"]["store"]["inner"];
     const availableStore = await aptos.getAccountResource({accountAddress: availableStoreAddress, resourceType: "0x1::fungible_asset::FungibleStore"});
     expect(parseInt(availableStore["balance"])).toBe(poolAmount);
@@ -227,7 +237,7 @@ test("Drain from the pool", async () => {
     // Create the pool
     let poolAmount = 100;
     let alice = await createAccount();
-    let poolObject = await createPool(alice, poolAmount);
+    let poolObject = await createPool({account: alice, poolAmount: poolAmount});
 
     let drainAmount = 50;
     let oldBalance = await aptos.account.getAccountAPTAmount(alice);
@@ -258,7 +268,7 @@ test("Excess Drain from the pool", async () => {
 
     let alice = await createAccount();
     let poolAmount = 100;
-    await createPool(alice, poolAmount);
+    await createPool({account: alice, poolAmount: poolAmount});
 
     try {
         let drainAmount = poolAmount + 1;
@@ -284,7 +294,7 @@ test("Credit the pool", async () => {
 
     let alice = await createAccount();
     let poolAmount = 100;
-    let poolObject = await createPool(alice, poolAmount);
+    let poolObject = await createPool({account: alice, poolAmount: poolAmount});
 
     const poolAddr = await getPoolAddress(alice, Tokens.APT);
     let poolAddress = poolAddr?.toString() || "";
@@ -325,9 +335,11 @@ test("View a pool", async () => {
 
     let alice = await createAccount();
     let poolAmount = 100;
-    await createPool(alice, poolAmount);
+    let name = "Payroll";
+    await createPool({account: alice, poolAmount: poolAmount, name});
     let poolView = await viewPool(alice, Tokens.APT);
 
+    expect(poolView.name).toBe(name);
     expect(poolView.available).toBe(poolAmount);
     expect(poolView.committed).toBe(0);
 });
@@ -345,7 +357,7 @@ test("Create multiple pools", async () => {
 
     for (const token of tokens) {
         for (const account of accounts) {
-            await createPool(account, poolAmount, token);
+            await createPool({account: account, poolAmount: poolAmount, token});
             let poolView = await viewPool(account, token);
 
             expect(poolView.available).toBe(poolAmount);
@@ -361,7 +373,7 @@ test("Create stream", async () => {
     let poolAmount = 100;
     let perSecond = 10;
 
-    await createPool(alice, poolAmount);
+    await createPool({account: alice, poolAmount: poolAmount});
 
     await startStream(alice, Tokens.APT, bob.accountAddress, perSecond);
 
@@ -425,7 +437,7 @@ test("Create stream and withdraw", async () => {
     let perSecond = 1;
     let oldBalance = await aptos.account.getAccountAPTAmount(bob);
 
-    let poolObject = await createPool(alice, poolAmount);
+    let poolObject = await createPool({account: alice, poolAmount: poolAmount});
     const originalLastBalance = parseInt(poolObject["last_balance"]);
     let streamId = await startStream(alice, Tokens.APT, bob.accountAddress, perSecond);
     let sleepFor = 5;
@@ -447,7 +459,7 @@ test("Create stream and close", async () => {
     let perSecond = 1;
     let oldBalance = await aptos.account.getAccountAPTAmount(bob);
 
-    let poolObject = await createPool(alice, poolAmount);
+    let poolObject = await createPool({account: alice, poolAmount: poolAmount});
     const originalLastBalance = parseInt(poolObject["last_balance"]);
     let streamId = await startStream(alice, Tokens.APT, bob.accountAddress, perSecond);
     let sleepFor = 5;
@@ -468,7 +480,7 @@ test("Create stream and cancel to have debt", async () => {
     let perSecond = 1;
     let oldBalance = await aptos.account.getAccountAPTAmount(bob);
 
-    let poolObject = await createPool(alice, poolAmount);
+    let poolObject = await createPool({account: alice, poolAmount: poolAmount});
     const originalLastBalance = parseInt(poolObject["last_balance"]);
     let streamId = await startStream(alice, Tokens.APT, bob.accountAddress, perSecond);
     // Sleep to create a debt equivalent to one second
@@ -496,7 +508,7 @@ test("Create stream and withdraw to have debt", async () => {
     let perSecond = 1;
     let oldBalance = await aptos.account.getAccountAPTAmount(bob);
 
-    await createPool(alice, poolAmount);
+    await createPool({account: alice, poolAmount: poolAmount});
     let streamId = await startStream(alice, Tokens.APT, bob.accountAddress, perSecond);
     // Sleep to create a debt equivalent to one second
     let sleepFor = poolAmount + perSecond;
