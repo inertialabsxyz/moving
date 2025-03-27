@@ -58,6 +58,7 @@ module moving::streams {
     }
 
     struct Stream has key, store, drop {
+        name: String,
         created: u64,
         pool: address,
         destination: address,
@@ -129,16 +130,18 @@ module moving::streams {
 
     public entry fun start_stream<T: key>(
         signer: &signer,
+        name: String,
         token: Object<T>,
         destination: address,
         per_second: u64
     ) acquires Pool {
-        let stream_id = create_stream<T>(signer, token, destination, per_second);
+        let stream_id = create_stream<T>(signer, name, token, destination, per_second);
         event::emit(StreamCreatedEvent { stream_id });
     }
 
     public fun create_stream<T: key>(
         signer: &signer,
+        name: String,
         token: Object<T>,
         destination: address,
         per_second: u64
@@ -151,6 +154,7 @@ module moving::streams {
             &mut pool.streams,
             stream_id,
             Stream {
+                name,
                 created: now,
                 pool: pool_addr,
                 destination,
@@ -613,10 +617,12 @@ module moving::streams {
         let per_second = 1;
         let time_jump = 5;
         let pool_name = string::utf8(b"Payroll");
+        let stream_name = string::utf8(b"Stream");
         mint(&mint_ref, signer_addr, mint_amount);
         create_pool(signer, pool_name, metadata, pool_amount);
         create_stream<TestToken>(
             signer,
+            stream_name,
             metadata,
             signer::address_of(destination),
             per_second
@@ -648,11 +654,18 @@ module moving::streams {
         let per_second = 1;
         let time_jump = 5;
         let pool_name = string::utf8(b"Payroll");
+        let stream_name = string::utf8(b"Stream");
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, destination_addr, mint_amount);
         create_pool(signer, pool_name, metadata, pool_amount);
         let stream_id =
-            create_stream<TestToken>(signer, metadata, destination_addr, per_second);
+            create_stream<TestToken>(
+                signer,
+                stream_name,
+                metadata,
+                destination_addr,
+                per_second
+            );
         timestamp::update_global_time_for_test_secs(time_jump);
         let pool =
             borrow_global_mut<Pool<Object<TestToken>>>(
@@ -683,11 +696,18 @@ module moving::streams {
         let per_second = 1;
         let time_jump = 5;
         let pool_name = string::utf8(b"Payroll");
+        let stream_name = string::utf8(b"Stream");
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, destination_addr, mint_amount);
         create_pool(signer, pool_name, metadata, pool_amount);
         let stream_id =
-            create_stream<TestToken>(signer, metadata, destination_addr, per_second);
+            create_stream<TestToken>(
+                signer,
+                stream_name,
+                metadata,
+                destination_addr,
+                per_second
+            );
         timestamp::update_global_time_for_test_secs(time_jump);
         let pool =
             borrow_global_mut<Pool<Object<TestToken>>>(
@@ -720,11 +740,18 @@ module moving::streams {
         let debt = 1;
         let time_jump = pool_amount * per_second + debt;
         let pool_name = string::utf8(b"Payroll");
+        let stream_name = string::utf8(b"Stream");
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, destination_addr, mint_amount);
         create_pool(signer, pool_name, metadata, pool_amount);
         let stream_id =
-            create_stream<TestToken>(signer, metadata, destination_addr, per_second);
+            create_stream<TestToken>(
+                signer,
+                stream_name,
+                metadata,
+                destination_addr,
+                per_second
+            );
         timestamp::update_global_time_for_test_secs(time_jump);
         let pool =
             borrow_global_mut<Pool<Object<TestToken>>>(
@@ -755,11 +782,18 @@ module moving::streams {
         let debt = 1;
         let time_jump = pool_amount * per_second + debt;
         let pool_name = string::utf8(b"Payroll");
+        let stream_name = string::utf8(b"Stream");
         mint(&mint_ref, signer_addr, mint_amount);
         mint(&mint_ref, destination_addr, mint_amount);
         create_pool(signer, pool_name, metadata, pool_amount);
         let stream_id =
-            create_stream<TestToken>(signer, metadata, destination_addr, per_second);
+            create_stream<TestToken>(
+                signer,
+                stream_name,
+                metadata,
+                destination_addr,
+                per_second
+            );
         timestamp::update_global_time_for_test_secs(time_jump);
         let pool =
             borrow_global_mut<Pool<Object<TestToken>>>(
