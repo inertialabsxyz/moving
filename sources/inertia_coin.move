@@ -17,7 +17,7 @@ module inertia::inertia_coin {
     /// Only fungible asset metadata owner can make changes.
     const ENOT_OWNER: u64 = 1;
 
-    const ASSET_SYMBOL: vector<u8> = b"STRM";
+    const ASSET_SYMBOL: vector<u8> = b"INT";
 
     #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
     /// Hold refs to control the minting, transfer and burning of fungible assets.
@@ -34,7 +34,7 @@ module inertia::inertia_coin {
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
             constructor_ref,
             option::none(),
-            utf8(b"STRM Coin"), /* name */
+            utf8(b"INT Coin"), /* name */
             utf8(ASSET_SYMBOL), /* symbol */
             8, /* decimals */
             utf8(b"http://example.com/favicon.ico"), /* icon */
