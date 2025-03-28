@@ -1,13 +1,13 @@
 [package]
-name = "moving"
+name = "streams"
 version = "1.0.0"
 authors = []
 
 [addresses]
-moving = "_"
+inertia = "_"
 
 [dev-addresses]
-moving = "0x2"
+inertia = "0x2"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-framework.git"

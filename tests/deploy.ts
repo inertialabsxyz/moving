@@ -36,18 +36,18 @@ function getPackageBytesToPublish(filePath: string) {
 }
 
 async function deployInternal() {
-    const tx = await aptos.fundAccount({accountAddress: deployAccount.accountAddress, amount: MINT_AMOUNT});
+    await aptos.fundAccount({accountAddress: deployAccount.accountAddress, amount: MINT_AMOUNT});
     const fileName = ".env.deploy.test";
     const contents =`DEPLOY_PRIVATE_KEY=${deployAccount.privateKey}\nDEPLOY_PUBLIC_KEY=${deployAccount.publicKey}\nDEPLOY_ADDRESS=${deployAccount.accountAddress}`
     console.log(`Saving to ${fileName}`);
     console.log(contents);
     fs.writeFileSync(fileName, contents);
 
-    compilePackage("../", "moving.json", [
-        { name: "moving", address: deployAccount.accountAddress },
+    compilePackage("../", "inertia.json", [
+        { name: "inertia", address: deployAccount.accountAddress },
     ]);
     const { metadataBytes, byteCode } = getPackageBytesToPublish(
-        "moving.json",
+        "inertia.json",
     );
 
     const transaction = await aptos.publishPackageTransaction({

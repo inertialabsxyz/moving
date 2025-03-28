@@ -1,4 +1,4 @@
-module moving::stream_coin {
+module inertia::inertia_coin {
     use aptos_framework::fungible_asset::{
         Self,
         MintRef,
@@ -56,7 +56,7 @@ module moving::stream_coin {
     #[view]
     /// Return the address of the managed fungible asset that's created when this module is deployed.
     public fun get_metadata(): Object<Metadata> {
-        let asset_address = object::create_object_address(&@moving, ASSET_SYMBOL);
+        let asset_address = object::create_object_address(&@inertia, ASSET_SYMBOL);
         object::address_to_object<Metadata>(asset_address)
     }
 
@@ -140,7 +140,7 @@ module moving::stream_coin {
         borrow_global<ManagedFungibleAsset>(object::object_address(&asset))
     }
 
-    #[test(creator = @moving)]
+    #[test(creator = @inertia)]
     fun test_basic_flow(creator: &signer) acquires ManagedFungibleAsset {
         init_module(creator);
         let creator_address = signer::address_of(creator);
@@ -159,7 +159,7 @@ module moving::stream_coin {
         burn(creator, creator_address, 90);
     }
 
-    #[test(creator = @moving, aaron = @0xface)]
+    #[test(creator = @inertia, aaron = @0xface)]
     #[expected_failure(abort_code = 0x50001, location = Self)]
     fun test_permission_denied(creator: &signer, aaron: &signer) acquires ManagedFungibleAsset {
         init_module(creator);
