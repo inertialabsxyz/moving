@@ -1,10 +1,10 @@
 
 import { Stream, mockStreams } from "../types";
 import { getApiConfig, mockDelay } from "../api-client";
-import { poolService } from "./pool-service";
+import { vaultService } from "./vault-service.ts";
 
 // Local mutable copy for mock implementation
-let localMockStreams = [...mockStreams];
+const localMockStreams = [...mockStreams];
 
 export const streamService = {
   /**
@@ -23,16 +23,16 @@ export const streamService = {
   },
   
   /**
-   * Get streams for a specific pool
+   * Get streams for a specific vault
    */
-  getStreamsByPoolId: async (poolId: string): Promise<Stream[]> => {
+  getStreamsByVaultId: async (vaultId: string): Promise<Stream[]> => {
     const config = getApiConfig();
     
     if (config.useMock) {
       await mockDelay();
-      return localMockStreams.filter(s => s.poolId === poolId).map(s => ({ ...s }));
+      return localMockStreams.filter(s => s.vaultId === vaultId).map(s => ({ ...s }));
     } else {
-      // Example: const streams = await contract.getStreamsByPoolId(poolId);
+      // Example: const streams = await contract.getStreamsByVaultId(vaultId);
       throw new Error("Smart contract integration not implemented yet");
     }
   },
@@ -62,10 +62,10 @@ export const streamService = {
     if (config.useMock) {
       await mockDelay();
       
-      // Get the pool to associate with this stream
-      const pool = await poolService.getPoolById(stream.poolId);
-      if (!pool) {
-        throw new Error(`Pool with ID ${stream.poolId} not found`);
+      // Get the vault to associate with this stream
+      const vault = await vaultService.getVaultsById(stream.vaultId);
+      if (!vault) {
+        throw new Error(`Vault with ID ${stream.vaultId} not found`);
       }
       
       const newStream: Stream = {
@@ -78,9 +78,9 @@ export const streamService = {
       
       localMockStreams.push(newStream);
       
-      // Add stream to pool too
-      const updatedPoolStreams = [...pool.streams, newStream];
-      await poolService.updatePool(pool.id, { streams: updatedPoolStreams });
+      // Add stream to vault too
+      const updatedVaultStreams = [...vault.streams, newStream];
+      await vaultService.updateVault(vault.id, { streams: updatedVaultStreams });
       
       return { ...newStream };
     } else {
@@ -110,13 +110,13 @@ export const streamService = {
       
       localMockStreams[index] = updatedStream;
       
-      // If this stream is part of a pool, update the pool's stream list too
-      const pool = await poolService.getPoolById(updatedStream.poolId);
-      if (pool) {
-        const updatedPoolStreams = pool.streams.map(s => 
+      // If this stream is part of a vault, update the vault's stream list too
+      const vault = await vaultService.getVaultsById(updatedStream.vaultId);
+      if (vault) {
+        const updatedVaultStreams = vault.streams.map(s => 
           s.id === id ? updatedStream : s
         );
-        await poolService.updatePool(pool.id, { streams: updatedPoolStreams });
+        await vaultService.updateVault(vault.id, { streams: updatedVaultStreams });
       }
       
       return { ...updatedStream };
@@ -147,13 +147,13 @@ export const streamService = {
       
       localMockStreams[index] = updatedStream;
       
-      // Update in the pool too
-      const pool = await poolService.getPoolById(updatedStream.poolId);
-      if (pool) {
-        const updatedPoolStreams = pool.streams.map(s => 
+      // Update in the vault too
+      const vault = await vaultService.getVaultsById(updatedStream.vaultId);
+      if (vault) {
+        const updatedVaultStreams = vault.streams.map(s => 
           s.id === id ? updatedStream : s
         );
-        await poolService.updatePool(pool.id, { streams: updatedPoolStreams });
+        await vaultService.updateVault(vault.id, { streams: updatedVaultStreams });
       }
       
       return { ...updatedStream };
@@ -191,13 +191,13 @@ export const streamService = {
       
       localMockStreams[index] = updatedStream;
       
-      // Update in the pool too
-      const pool = await poolService.getPoolById(updatedStream.poolId);
-      if (pool) {
-        const updatedPoolStreams = pool.streams.map(s => 
+      // Update in the vault too
+      const vault = await vaultService.getVaultsById(updatedStream.vaultId);
+      if (vault) {
+        const updatedVaultStreams = vault.streams.map(s => 
           s.id === id ? updatedStream : s
         );
-        await poolService.updatePool(pool.id, { streams: updatedPoolStreams });
+        await vaultService.updateVault(vault.id, { streams: updatedVaultStreams });
       }
       
       return { ...updatedStream };

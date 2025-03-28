@@ -20,7 +20,7 @@ interface StreamCardDetailsProps {
   onEditName: () => void;
   onWithdraw: () => void;
   onCancel: () => void;
-  hidePoolInfo?: boolean;
+  hideVaultInfo?: boolean;
 }
 
 export function StreamCardDetails({
@@ -35,7 +35,7 @@ export function StreamCardDetails({
   onEditName,
   onWithdraw,
   onCancel,
-  hidePoolInfo = false
+  hideVaultInfo = false
 }: StreamCardDetailsProps) {
   // Function to get token badge style
   const getTokenBadge = (token: string) => {
@@ -52,19 +52,19 @@ export function StreamCardDetails({
   return (
     <CardHover className="h-full w-full overflow-hidden relative">
       <div className="absolute top-4 right-4 flex gap-1">
-        {!hidePoolInfo && (
+        {!hideVaultInfo && (
           <>
             <HoverCard>
               <HoverCardTrigger>
                 <Badge variant="outline" className="bg-secondary/50 hover:bg-secondary/70 cursor-pointer">
-                  Pool {stream.poolId.split('-')[1]}
+                  Vault {stream.vaultId.split('-')[1]}
                 </Badge>
               </HoverCardTrigger>
               <HoverCardContent className="w-48">
                 <div className="text-sm">
-                  <p className="font-semibold">Pool {stream.poolId.split('-')[1]}</p>
+                  <p className="font-semibold">Vault {stream.vaultId.split('-')[1]}</p>
                   <p className="text-muted-foreground text-xs mt-1">
-                    Click to view pool details and related streams
+                    Click to view vault details and related streams
                   </p>
                 </div>
               </HoverCardContent>
@@ -184,11 +184,11 @@ export function StreamCardDetails({
                 </Button>
               )}
               
-              {!hidePoolInfo && (
+              {!hideVaultInfo && (
                 <Button variant="outline" className="flex-1 gap-1" asChild>
-                  <Link to={`/pools/${stream.poolId}`}>
+                  <Link to={`/vaults/${stream.vaultId}`}>
                     <ArrowUpRight className="h-4 w-4" />
-                    <span>View Pool</span>
+                    <span>View Vault</span>
                   </Link>
                 </Button>
               )}

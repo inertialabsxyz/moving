@@ -5,14 +5,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
-interface EditPoolNameDialogProps {
+interface EditVaultNameDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentName: string;
   onSave: (newName: string) => void;
 }
 
-export function EditPoolNameDialog({ open, onOpenChange, currentName, onSave }: EditPoolNameDialogProps) {
+export function EditVaultNameDialog({ open, onOpenChange, currentName, onSave }: EditVaultNameDialogProps) {
   const [newName, setNewName] = useState(currentName);
   const [nameError, setNameError] = useState("");
   
@@ -56,9 +56,9 @@ export function EditPoolNameDialog({ open, onOpenChange, currentName, onSave }: 
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="poolName">Vault Name</Label>
+            <Label htmlFor="vaultName">Vault Name</Label>
             <Input
-              id="poolName"
+              id="vaultName"
               placeholder="My Payment Vault"
               value={newName}
               onChange={handleNameChange}

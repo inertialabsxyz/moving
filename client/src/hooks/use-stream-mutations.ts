@@ -12,8 +12,8 @@ export function useCreateStreamMutation() {
       streamService.createStream(streamData),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["streams"] });
-      queryClient.invalidateQueries({ queryKey: ["streams", "pool", data.poolId] });
-      queryClient.invalidateQueries({ queryKey: ["pool", data.poolId] });
+      queryClient.invalidateQueries({ queryKey: ["streams", "vault", data.vaultId] });
+      queryClient.invalidateQueries({ queryKey: ["vault", data.vaultId] });
       toast.success("Stream created successfully");
     },
     onError: (error) => {
@@ -31,8 +31,8 @@ export function useUpdateStreamMutation() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["streams"] });
       queryClient.invalidateQueries({ queryKey: ["stream", data.id] });
-      queryClient.invalidateQueries({ queryKey: ["streams", "pool", data.poolId] });
-      queryClient.invalidateQueries({ queryKey: ["pool", data.poolId] });
+      queryClient.invalidateQueries({ queryKey: ["streams", "vault", data.vaultId] });
+      queryClient.invalidateQueries({ queryKey: ["vault", data.vaultId] });
       toast.success("Stream updated successfully");
     },
     onError: (error) => {
@@ -49,8 +49,8 @@ export function useCancelStreamMutation() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["streams"] });
       queryClient.invalidateQueries({ queryKey: ["stream", data.id] });
-      queryClient.invalidateQueries({ queryKey: ["streams", "pool", data.poolId] });
-      queryClient.invalidateQueries({ queryKey: ["pool", data.poolId] });
+      queryClient.invalidateQueries({ queryKey: ["streams", "vault", data.vaultId] });
+      queryClient.invalidateQueries({ queryKey: ["vault", data.vaultId] });
       toast.success("Stream cancelled successfully");
     },
     onError: (error) => {
@@ -68,7 +68,7 @@ export function useWithdrawFromStreamMutation() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["streams"] });
       queryClient.invalidateQueries({ queryKey: ["stream", data.id] });
-      queryClient.invalidateQueries({ queryKey: ["streams", "pool", data.poolId] });
+      queryClient.invalidateQueries({ queryKey: ["streams", "vault", data.vaultId] });
       toast.success(`Successfully withdrew from stream`);
     },
     onError: (error) => {

@@ -10,11 +10,11 @@ export function useStreamsQuery() {
   });
 }
 
-export function usePoolStreamsQuery(poolId: string | undefined) {
+export function useVaultStreamsQuery(vaultId: string | undefined) {
   return useQuery({
-    queryKey: ["streams", "pool", poolId],
-    queryFn: () => poolId ? streamService.getStreamsByPoolId(poolId) : Promise.resolve([]),
-    enabled: !!poolId,
+    queryKey: ["streams", "vault", vaultId],
+    queryFn: () => vaultId ? streamService.getStreamsByVaultId(vaultId) : Promise.resolve([]),
+    enabled: !!vaultId,
   });
 }
 

@@ -1,8 +1,8 @@
 
-export interface Pool {
+export interface Vault {
   id: string;
   owner: string;
-  name?: string; // Add name field to Pool
+  name?: string;
   balance: number;
   token: string;
   createdAt: string;
@@ -11,9 +11,9 @@ export interface Pool {
 
 export interface Stream {
   id: string;
-  poolId: string;
-  source: string; // Owner wallet address
-  destination: string; // Destination wallet address
+  vaultId: string;
+  source: string;
+  destination: string;
   amountPerSecond: number;
   totalStreamed: number;
   totalWithdrawn: number;
@@ -30,68 +30,104 @@ export interface Wallet {
   };
 }
 
+// Define supported tokens in one central location
+export type TokenSymbol = 'APT' | 'STRM';
+
+export interface TokenInfo {
+  symbol: TokenSymbol;
+  name: string;
+  color: string;
+  fungibleAsset: string;
+}
+
+export const SUPPORTED_TOKENS: TokenInfo[] = [
+  {
+    symbol: 'APT',
+    name: 'Aptos',
+    color: 'bg-blue-500/90',
+    fungibleAsset: '0x1::aptos_coin::AptosCoin'
+  },
+  {
+    symbol: 'STRM',
+    name: 'Stream',
+    color: 'bg-purple-500/90',
+    fungibleAsset: '0x1::stream_coin::StreamCoin'
+  }
+];
+
+// Helper function to get token info
+export const getTokenInfo = (symbol: string): TokenInfo | undefined => {
+  return SUPPORTED_TOKENS.find(token => token.symbol === symbol);
+};
+
+// Helper function to get token color class
+export const getTokenColorClass = (symbol: string): string => {
+  const token = getTokenInfo(symbol);
+  return token?.color || 'bg-gray-500';
+};
+
 // Mock data for initial app state
 export const mockWallet: Wallet = {
   address: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
   isCurrentUser: true,
   balances: {
-    "USDC": 8750.42,
-    "MOVE": 12340.89
+    "APT": 8750.42,
+    "STRM": 12340.89
   }
 };
 
-export const mockPools: Pool[] = [
+export const mockVaults: Vault[] = [
   {
-    id: "pool-1",
-    name: "Payroll Vault", // Renamed from "Payroll Pool"
+    id: "vault-1",
+    name: "Payroll Vault",
     owner: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
     balance: 5000,
-    token: "USDC",
+    token: "APT",
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     streams: [
       {
         id: "stream-1",
-        poolId: "pool-1",
+        vaultId: "vault-1",
         source: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
         destination: "0xA742a3D13571B2ec9A1b2Fc038f7ACD9E7ed0E39",
         amountPerSecond: 0.01,
         totalStreamed: 845.23,
         totalWithdrawn: 700,
-        token: "USDC",
+        token: "APT",
         active: true,
         createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString()
       },
       {
         id: "stream-2",
-        poolId: "pool-1",
+        vaultId: "vault-1",
         source: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
         destination: "0xB456b7C8fE9c543A0F9a61Dd13DA4208F8b1EfA2",
         amountPerSecond: 0.005,
         totalStreamed: 349.87,
         totalWithdrawn: 300,
-        token: "USDC",
+        token: "APT",
         active: true,
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
       }
     ]
   },
   {
-    id: "pool-2",
-    name: "Marketing Expenses", // Keep existing name
+    id: "vault-2",
+    name: "Marketing Expenses",
     owner: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
     balance: 2000,
-    token: "MOVE",
+    token: "STRM",
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     streams: [
       {
         id: "stream-3",
-        poolId: "pool-2",
+        vaultId: "vault-2",
         source: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
         destination: "0xC123c452Fe98B876A516FB89D68e3c3BF1B6D8E9",
         amountPerSecond: 0.008,
         totalStreamed: 243.56,
         totalWithdrawn: 200,
-        token: "MOVE",
+        token: "STRM",
         active: true,
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
       }
@@ -100,17 +136,17 @@ export const mockPools: Pool[] = [
 ];
 
 export const mockStreams: Stream[] = [
-  ...mockPools[0].streams,
-  ...mockPools[1].streams,
+  ...mockVaults[0].streams,
+  ...mockVaults[1].streams,
   {
     id: "stream-4",
-    poolId: "pool-3",
+    vaultId: "vault-3",
     source: "0xD789dF5E91BB3Fa403f7A3B5Eb42E31D74F2B3A8",
     destination: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
     amountPerSecond: 0.012,
     totalStreamed: 532.12,
     totalWithdrawn: 450,
-    token: "MOVE",
+    token: "STRM",
     active: true,
     createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
   }

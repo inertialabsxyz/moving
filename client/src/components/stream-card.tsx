@@ -11,11 +11,11 @@ interface StreamCardProps {
   stream: Stream;
   isReceiving?: boolean;
   compact?: boolean;
-  hidePoolInfo?: boolean;
+  hideVaultInfo?: boolean;
 }
 
-export function StreamCard({ stream, isReceiving = false, compact = false, hidePoolInfo = false }: StreamCardProps) {
-  // Check if current user is stream owner or pool owner
+export function StreamCard({ stream, isReceiving = false, compact = false, hideVaultInfo = false }: StreamCardProps) {
+  // Check if current user is stream owner or vault owner
   const isOwner = stream.source === mockWallet.address;
   
   const { 
@@ -45,7 +45,7 @@ export function StreamCard({ stream, isReceiving = false, compact = false, hideP
           isReceiving={isReceiving}
           isOwner={isOwner}
           onEditName={() => setShowEditNameDialog(true)}
-          hidePoolInfo={hidePoolInfo}
+          hideVaultInfo={hideVaultInfo}
         />
         
         <EditNameDialog
@@ -72,7 +72,7 @@ export function StreamCard({ stream, isReceiving = false, compact = false, hideP
         onEditName={() => setShowEditNameDialog(true)}
         onWithdraw={() => setShowWithdrawDialog(true)}
         onCancel={() => setShowCancelDialog(true)}
-        hidePoolInfo={hidePoolInfo}
+        hideVaultInfo={hideVaultInfo}
       />
 
       {/* Dialogs */}

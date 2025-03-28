@@ -1,9 +1,8 @@
 
 import { Navigation } from "@/components/navigation";
-import { CreatePoolDialog } from "@/components/create-pool-dialog";
+import { CreateVaultDialog } from "@/components/create-vault-dialog.tsx";
 import { CreateStreamDialog } from "@/components/create-stream-dialog";
-import { WalletOverview } from "@/components/wallet-overview";
-import { mockPools, mockStreams, mockWallet } from "@/lib/types";
+import { mockVaults, mockStreams, mockWallet } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { StatsSection } from "@/components/dashboard/stats-section";
 import { StreamsSection } from "@/components/dashboard/streams-section";
@@ -20,14 +19,14 @@ const Index = () => {
     (stream) => stream.source === mockWallet.address && stream.active
   );
 
-  // Get only the user's pools
-  const userPools = mockPools.filter(
-    (pool) => pool.owner === mockWallet.address
+  // Get only the user's vaults
+  const userVaults = mockVaults.filter(
+    (vault) => vault.owner === mockWallet.address
   );
   
-  // Calculate total tokens in pools
-  const poolTokens = userPools.reduce((acc, pool) => {
-    acc[pool.token] = (acc[pool.token] || 0) + pool.balance;
+  // Calculate total tokens in vaults
+  const vaultTokens = userVaults.reduce((acc, vault) => {
+    acc[vault.token] = (acc[vault.token] || 0) + vault.balance;
     return acc;
   }, {} as Record<string, number>);
   
@@ -77,8 +76,8 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [incomingStreams, outgoingStreams]);
   
-  // Get the recent activity (both pools and streams)
-  const recentPools = userPools.slice(0, 2);
+  // Get the recent activity (both vaults and streams)
+  const recentVaults = userVaults.slice(0, 2);
   const recentStreams = mockStreams.slice(0, 2);
   
   // Get total count of active streams
@@ -105,9 +104,8 @@ const Index = () => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-end gap-2">
-              <WalletOverview />
               <div className="flex gap-2">
-                <CreatePoolDialog />
+                <CreateVaultDialog />
                 <CreateStreamDialog />
               </div>
             </div>
@@ -115,8 +113,8 @@ const Index = () => {
           
           {/* Stats Cards */}
           <StatsSection 
-            userPools={userPools}
-            poolTokens={poolTokens}
+            userVaults={userVaults}
+            vaultTokens={vaultTokens}
             activeStreamsCount={activeStreamsCount}
             dynamicOutgoingTokens={dynamicOutgoingTokens}
             dynamicIncomingTokens={dynamicIncomingTokens}
@@ -133,7 +131,7 @@ const Index = () => {
           
           {/* Recent Activity */}
           <RecentActivity 
-            recentPools={recentPools}
+            recentVaults={recentVaults}
             recentStreams={recentStreams}
             walletAddress={mockWallet.address}
           />

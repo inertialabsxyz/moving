@@ -1,27 +1,27 @@
 
 import { Wallet2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Pool, formatCurrency } from "@/lib/types";
+import { Vault, formatCurrency } from "@/lib/types";
 import { StatsCard, TokenDisplay } from "./stats-card";
 
-interface PoolsCardProps {
-  userPools: Pool[];
-  poolTokens: Record<string, number>;
+interface VaultsCardProps {
+  userVaults: Vault[];
+  vaultTokens: Record<string, number>;
 }
 
-export function PoolsCard({ userPools, poolTokens }: PoolsCardProps) {
+export function VaultsCard({ userVaults, vaultTokens }: VaultsCardProps) {
   return (
     <StatsCard
       title="My Vaults"
       icon={<Wallet2 className="h-5 w-5 text-primary" />}
-      count={userPools.length}
+      count={userVaults.length}
       linkText="View all vaults"
-      linkTo="/pools"
+      linkTo="/vaults"
     >
-      {Object.entries(poolTokens).length > 0 && (
+      {Object.entries(vaultTokens).length > 0 && (
         <>
           <div className="text-xs text-muted-foreground mb-1">Total funds across all vaults:</div>
-          {Object.entries(poolTokens).map(([token, amount]) => (
+          {Object.entries(vaultTokens).map(([token, amount]) => (
             <TokenDisplay 
               key={token} 
               token={token} 

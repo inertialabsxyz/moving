@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,42 +20,42 @@ import {
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { mockPools } from "@/lib/types";
+import { mockVaults, SUPPORTED_TOKENS } from "@/lib/types";
 
 interface CreateStreamDialogProps {
-  poolId?: string;
+  vaultId?: string;
 }
 
-export function CreateStreamDialog({ poolId }: CreateStreamDialogProps) {
+export function CreateStreamDialog({ vaultId }: CreateStreamDialogProps) {
   const [open, setOpen] = useState(false);
-  const [selectedPool, setSelectedPool] = useState(poolId || "");
+  const [selectedVault, setSelectedVault] = useState(vaultId || "");
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState("");
   const [recipient, setRecipient] = useState("");
   const [rate, setRate] = useState("");
   const [timeUnit, setTimeUnit] = useState("second");
   const [loading, setLoading] = useState(false);
-  const [poolToken, setPoolToken] = useState("");
+  const [vaultToken, setVaultToken] = useState("");
 
   useEffect(() => {
-    // Set initial pool token if poolId is provided
-    if (poolId) {
-      const pool = mockPools.find(p => p.id === poolId);
-      if (pool) {
-        setPoolToken(pool.token);
+    // Set initial vault token if vaultId is provided
+    if (vaultId) {
+      const vault = mockVaults.find(p => p.id === vaultId);
+      if (vault) {
+        setVaultToken(vault.token);
       }
     }
-  }, [poolId]);
+  }, [vaultId]);
 
-  // Update pool token when selected pool changes
+  // Update vault token when selected vault changes
   useEffect(() => {
-    if (selectedPool) {
-      const pool = mockPools.find(p => p.id === selectedPool);
-      if (pool) {
-        setPoolToken(pool.token);
+    if (selectedVault) {
+      const vault = mockVaults.find(p => p.id === selectedVault);
+      if (vault) {
+        setVaultToken(vault.token);
       }
     }
-  }, [selectedPool]);
+  }, [selectedVault]);
 
   // Validate name field when it changes
   const validateName = (value: string) => {
@@ -187,21 +186,21 @@ export function CreateStreamDialog({ poolId }: CreateStreamDialogProps) {
               )}
             </div>
             
-            {!poolId && (
+            {!vaultId && (
               <div className="grid gap-2">
-                <Label htmlFor="pool">Select Vault</Label>
+                <Label htmlFor="vault">Select Vault</Label>
                 <Select
-                  value={selectedPool}
-                  onValueChange={setSelectedPool}
+                  value={selectedVault}
+                  onValueChange={setSelectedVault}
                   required
                 >
-                  <SelectTrigger id="pool">
+                  <SelectTrigger id="vault">
                     <SelectValue placeholder="Select a vault" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockPools.map((pool) => (
-                      <SelectItem key={pool.id} value={pool.id}>
-                        {pool.name || `Vault ${pool.id.split("-")[1]}`} ({pool.token})
+                    {mockVaults.map((vault) => (
+                      <SelectItem key={vault.id} value={vault.id}>
+                        {vault.name || `Vault ${vault.id.split("-")[1]}`} ({vault.token})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -247,21 +246,21 @@ export function CreateStreamDialog({ poolId }: CreateStreamDialogProps) {
                   </SelectContent>
                 </Select>
               </div>
-              {(selectedPool || poolId) && rate && (
+              {(selectedVault || vaultId) && rate && (
                 <div className="text-sm text-muted-foreground mt-1">
                   <p>This is approximately:</p>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
                     <p className="font-medium">
-                      {equivalentRates.perSecond.toFixed(6)} {poolToken}/second
+                      {equivalentRates.perSecond.toFixed(6)} {vaultToken}/second
                     </p>
                     <p className="font-medium">
-                      {equivalentRates.perHour.toFixed(4)} {poolToken}/hour
+                      {equivalentRates.perHour.toFixed(4)} {vaultToken}/hour
                     </p>
                     <p className="font-medium">
-                      {equivalentRates.perDay.toFixed(2)} {poolToken}/day
+                      {equivalentRates.perDay.toFixed(2)} {vaultToken}/day
                     </p>
                     <p className="font-medium">
-                      {(equivalentRates.perDay * 30).toFixed(2)} {poolToken}/month
+                      {(equivalentRates.perDay * 30).toFixed(2)} {vaultToken}/month
                     </p>
                   </div>
                 </div>
@@ -274,7 +273,7 @@ export function CreateStreamDialog({ poolId }: CreateStreamDialogProps) {
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || !name || nameError !== "" || !recipient || !rate || (!poolId && !selectedPool)}
+              disabled={loading || !name || nameError !== "" || !recipient || !rate || (!vaultId && !selectedVault)}
             >
               {loading ? "Creating..." : "Create Stream"}
             </Button>

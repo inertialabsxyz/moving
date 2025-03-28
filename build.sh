@@ -1,0 +1,1 @@
+aptos move compile --save-metadata --named-addresses inertia=17d1169c2f4e744ea21495510702cae3eba2230e928713bc07ae7c611cd1269b

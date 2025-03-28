@@ -97,7 +97,7 @@
   }
   
   .page-transition {
-    @apply animate-enter;
+    @apply animate-fade-in;
   }
   
   .wallet-address {

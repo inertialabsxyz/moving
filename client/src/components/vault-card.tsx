@@ -2,7 +2,7 @@
 import { CardHover } from "@/components/ui/card-hover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatAddress, formatCurrency, Pool } from "@/lib/types";
+import { formatAddress, formatCurrency, Vault } from "@/lib/types";
 import { Link } from "react-router-dom";
 import { Banknote, TrendingUp, Wallet } from "lucide-react";
 import { useState } from "react";
@@ -11,18 +11,18 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-interface PoolCardProps {
-  pool: Pool;
+interface VaultCardProps {
+  vault: Vault;
   compact?: boolean;
 }
 
-export function PoolCard({ pool, compact = false }: PoolCardProps) {
+export function VaultCard({ vault, compact = false }: VaultCardProps) {
   const [addCreditOpen, setAddCreditOpen] = useState(false);
   const [creditAmount, setCreditAmount] = useState("");
   const [loading, setLoading] = useState(false);
   
-  const streamsCount = pool.streams?.length || 0;
-  const poolName = pool.name || `Vault ${pool.id.split("-")[1]}`;
+  const streamsCount = vault.streams?.length || 0;
+  const vaultName = vault.name || `Vault ${vault.id.split("-")[1]}`;
   
   const handleAddCredit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,12 +56,12 @@ export function PoolCard({ pool, compact = false }: PoolCardProps) {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Wallet className="h-4 w-4 text-primary" />
-            <h3 className="font-medium">{poolName}</h3>
+            <h3 className="font-medium">{vaultName}</h3>
           </div>
           <div className="text-sm flex items-center gap-1">
-            {formatCurrency(pool.balance)} 
-            <Badge variant="token" className={getTokenBadge(pool.token)}>
-              {pool.token}
+            {formatCurrency(vault.balance)}
+            <Badge variant="token" className={getTokenBadge(vault.token)}>
+              {vault.token}
             </Badge>
           </div>
         </div>
@@ -70,7 +70,7 @@ export function PoolCard({ pool, compact = false }: PoolCardProps) {
             {streamsCount} stream{streamsCount !== 1 ? 's' : ''}
           </div>
           <Link 
-            to={`/pools/${pool.id}`}
+            to={`/vaults/${vault.id}`}
             className="text-xs text-primary font-medium link-hover inline-block"
           >
             View details
@@ -91,17 +91,17 @@ export function PoolCard({ pool, compact = false }: PoolCardProps) {
                   <Banknote className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-medium">{poolName}</h3>
+                  <h3 className="font-medium">{vaultName}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Created {new Date(pool.createdAt).toLocaleDateString()}
+                    Created {new Date(vault.createdAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-lg font-semibold flex items-center justify-end gap-1">
-                  {formatCurrency(pool.balance)} 
-                  <Badge variant="token" className={getTokenBadge(pool.token)}>
-                    {pool.token}
+                  {formatCurrency(vault.balance)}
+                  <Badge variant="token" className={getTokenBadge(vault.token)}>
+                    {vault.token}
                   </Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -113,7 +113,7 @@ export function PoolCard({ pool, compact = false }: PoolCardProps) {
             <div className="grid grid-cols-2 gap-4 mt-2">
               <div className="bg-muted/50 rounded-lg p-3">
                 <div className="text-sm text-muted-foreground">Owner</div>
-                <div className="wallet-address">{formatAddress(pool.owner)}</div>
+                <div className="wallet-address">{formatAddress(vault.owner)}</div>
               </div>
               <div className="bg-muted/50 rounded-lg p-3">
                 <div className="text-sm text-muted-foreground">Active Streams</div>
@@ -126,7 +126,7 @@ export function PoolCard({ pool, compact = false }: PoolCardProps) {
             
             <div className="flex gap-2 mt-2">
               <Button asChild variant="default" className="flex-1">
-                <Link to={`/pools/${pool.id}`}>Manage Vault</Link>
+                <Link to={`/vaults/${vault.id}`}>Manage Vault</Link>
               </Button>
               <Button 
                 variant="outline" 
@@ -164,8 +164,8 @@ export function PoolCard({ pool, compact = false }: PoolCardProps) {
                     onChange={(e) => setCreditAmount(e.target.value)}
                     required
                   />
-                  <Badge variant="token" className={`${getTokenBadge(pool.token)}`}>
-                    {pool.token}
+                  <Badge variant="token" className={`${getTokenBadge(vault.token)}`}>
+                    {vault.token}
                   </Badge>
                 </div>
               </div>

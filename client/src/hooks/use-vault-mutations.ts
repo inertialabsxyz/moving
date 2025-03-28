@@ -1,17 +1,17 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { poolService } from "@/lib/services";
-import { Pool } from "@/lib/types";
+import { vaultService } from "@/lib/services";
+import { Vault } from "@/lib/types";
 import { toast } from "sonner";
 
-export function useCreatePoolMutation() {
+export function useCreateVaultMutation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (poolData: Omit<Pool, "id" | "createdAt" | "streams">) => 
-      poolService.createPool(poolData),
+    mutationFn: (vaultData: Omit<Vault, "id" | "createdAt" | "streams">) =>
+      vaultService.createVault(vaultData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["pools"] });
+      queryClient.invalidateQueries({ queryKey: ["vaults"] });
       toast.success("Vault created successfully");
     },
     onError: (error) => {
@@ -20,15 +20,15 @@ export function useCreatePoolMutation() {
   });
 }
 
-export function useUpdatePoolMutation() {
+export function useUpdateVaultMutation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Pool> }) => 
-      poolService.updatePool(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Vault> }) =>
+      vaultService.updateVault(id, updates),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["pools"] });
-      queryClient.invalidateQueries({ queryKey: ["pool", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["vaults"] });
+      queryClient.invalidateQueries({ queryKey: ["vault", data.id] });
       toast.success("Vault updated successfully");
     },
     onError: (error) => {
@@ -37,14 +37,14 @@ export function useUpdatePoolMutation() {
   });
 }
 
-export function useDeletePoolMutation() {
+export function useDeleteVaultMutation() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: string) => poolService.deletePool(id),
+    mutationFn: (id: string) => vaultService.deleteVault(id),
     onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ["pools"] });
-      queryClient.removeQueries({ queryKey: ["pool", id] });
+      queryClient.invalidateQueries({ queryKey: ["vaults"] });
+      queryClient.removeQueries({ queryKey: ["vault", id] });
       toast.success("Vault deleted successfully");
     },
     onError: (error) => {
@@ -58,10 +58,10 @@ export function useAddCreditMutation() {
   
   return useMutation({
     mutationFn: ({ id, amount }: { id: string; amount: number }) => 
-      poolService.addCredit(id, amount),
+      vaultService.addCredit(id, amount),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["pools"] });
-      queryClient.invalidateQueries({ queryKey: ["pool", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["vaults"] });
+      queryClient.invalidateQueries({ queryKey: ["vault", data.id] });
       toast.success(`Successfully added credit to vault`);
     },
     onError: (error) => {
@@ -70,15 +70,15 @@ export function useAddCreditMutation() {
   });
 }
 
-export function useDrainPoolMutation() {
+export function useDrainVaultMutation() {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: ({ id, amount }: { id: string; amount: number }) => 
-      poolService.drainPool(id, amount),
+      vaultService.drainVault(id, amount),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["pools"] });
-      queryClient.invalidateQueries({ queryKey: ["pool", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["vaults"] });
+      queryClient.invalidateQueries({ queryKey: ["vault", data.id] });
       toast.success(`Successfully drained ${data.token} from vault`);
     },
     onError: (error) => {

@@ -1,7 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatAddress, Stream } from "@/lib/types";
+import { formatAddress, Stream, getTokenColorClass } from "@/lib/types";
 import { Copy, Edit, Clock, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { CardHover } from "@/components/ui/card-hover";
@@ -13,7 +12,7 @@ interface StreamCardCompactProps {
   isReceiving?: boolean;
   isOwner: boolean;
   onEditName: () => void;
-  hidePoolInfo?: boolean;
+  hideVaultInfo?: boolean;
 }
 
 export function StreamCardCompact({ 
@@ -22,7 +21,7 @@ export function StreamCardCompact({
   isReceiving = false, 
   isOwner,
   onEditName,
-  hidePoolInfo = false
+  hideVaultInfo = false
 }: StreamCardCompactProps) {
   const { toast } = useToast();
 
@@ -74,36 +73,34 @@ export function StreamCardCompact({
         </div>
         <div className="text-sm font-medium flex items-center gap-1">
           {formatAmount(stream.amountPerSecond)} 
-          <Badge variant="token" className={`ml-1 ${getTokenBadge(stream.token)}`}>
+          <Badge variant="token" className={`ml-1 ${getTokenColorClass(stream.token)} text-white border-0`}>
             {stream.token}
           </Badge>
           /sec
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {!hidePoolInfo && (
-            <>
-              <HoverCard>
-                <HoverCardTrigger>
-                  <Badge variant="outline" className="bg-secondary/50 hover:bg-secondary/70 cursor-pointer">
-                    From Pool {stream.poolId.split('-')[1]}
-                  </Badge>
-                </HoverCardTrigger>
-                <HoverCardContent className="w-48">
-                  <div className="text-sm">
-                    <p className="font-semibold">Pool {stream.poolId.split('-')[1]}</p>
-                    <p className="text-muted-foreground text-xs mt-1">Tap to view pool details and related streams</p>
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
-              
-              <Badge variant="token" className={isReceiving ? "bg-emerald-100 text-emerald-700 border-0" : "bg-blue-100 text-blue-700 border-0"}>
-                {isReceiving ? "Incoming" : "Outgoing"}
-              </Badge>
-            </>
-          )}
-        </div>
+        {!hideVaultInfo && (
+          <>
+            <HoverCard>
+              <HoverCardTrigger>
+                <Badge variant="outline" className="bg-secondary/50 hover:bg-secondary/70 cursor-pointer">
+                  From Vault {stream.vaultId.split('-')[1]}
+                </Badge>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-48">
+                <div className="text-sm">
+                  <p className="font-semibold">Vault {stream.vaultId.split('-')[1]}</p>
+                  <p className="text-muted-foreground text-xs mt-1">Tap to view vault details and related streams</p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+            
+            <Badge variant="token" className={isReceiving ? "bg-emerald-100 text-emerald-700 border-0" : "bg-blue-100 text-blue-700 border-0"}>
+              {isReceiving ? "Incoming" : "Outgoing"}
+            </Badge>
+          </>
+        )}
         
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           {isReceiving ? 'From:' : 'To:'} 

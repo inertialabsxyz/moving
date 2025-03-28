@@ -1,14 +1,14 @@
 
 import { Navigation } from "@/components/navigation";
-import { PoolCard } from "@/components/pool-card";
-import { CreatePoolDialog } from "@/components/create-pool-dialog";
-import { mockPools, mockWallet } from "@/lib/types";
+import { VaultCard } from "@/components/vault-card.tsx";
+import { CreateVaultDialog } from "@/components/create-vault-dialog.tsx";
+import { mockVaults, mockWallet } from "@/lib/types";
 import { Wallet2 } from "lucide-react";
 
-const Pools = () => {
-  // Get only user's pools
-  const userPools = mockPools.filter(
-    (pool) => pool.owner === mockWallet.address
+const Vaults = () => {
+  // Get only user's vaults
+  const userVaults = mockVaults.filter(
+    (vault) => vault.owner === mockWallet.address
   );
 
   return (
@@ -24,13 +24,13 @@ const Pools = () => {
                 Manage your payment vaults
               </p>
             </div>
-            <CreatePoolDialog />
+            <CreateVaultDialog />
           </div>
           
-          {userPools.length > 0 ? (
+          {userVaults.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {userPools.map((pool) => (
-                <PoolCard key={pool.id} pool={pool} />
+              {userVaults.map((vault) => (
+                <VaultCard key={vault.id} vault={vault} />
               ))}
             </div>
           ) : (
@@ -42,7 +42,7 @@ const Pools = () => {
               <p className="text-muted-foreground max-w-md mb-6">
                 Create your first payment vault to start sending money to recipients in continuous streams.
               </p>
-              <CreatePoolDialog />
+              <CreateVaultDialog />
             </div>
           )}
         </section>
@@ -51,4 +51,4 @@ const Pools = () => {
   );
 };
 
-export default Pools;
+export default Vaults;

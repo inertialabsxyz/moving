@@ -1,9 +1,9 @@
-
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getTokenColorClass } from "@/lib/types";
 
 interface StatsCardProps {
   title: string;
@@ -63,24 +63,12 @@ export function TokenDisplay({
   amount: number | string; 
   label?: string;
 }) {
-  // Function to get token badge style
-  const getTokenBadge = (token: string) => {
-    switch (token) {
-      case "USDC":
-        return "bg-blue-500/90 text-white border-0";
-      case "MOVE":
-        return "bg-purple-500/90 text-white border-0";
-      default:
-        return "bg-gray-500 text-white border-0";
-    }
-  };
-
   return (
     <>
       {label && <div className="text-xs text-muted-foreground mb-1">{label}</div>}
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium">{amount}</span>
-        <Badge variant="token" className={`${getTokenBadge(token)} text-xs px-1.5 py-0.5`}>
+        <Badge variant="token" className={`${getTokenColorClass(token)} text-white border-0 text-xs px-1.5 py-0.5`}>
           {token}
         </Badge>
       </div>

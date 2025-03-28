@@ -1,6 +1,8 @@
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { configureApi, getApiConfig, resetApiConfig, ApiConfig } from "@/lib/api-client";
+import { getEnvConfig } from "@/lib/env-config";
+import { SUPPORTED_TOKENS } from "@/lib/types";
 
 interface ApiContextType {
   apiConfig: ApiConfig;
@@ -14,6 +16,26 @@ const ApiContext = createContext<ApiContextType | undefined>(undefined);
 export function ApiProvider({ children }: { children: ReactNode }) {
   const [apiConfig, setApiConfigState] = useState<ApiConfig>(getApiConfig());
   const [isLoading, setIsLoading] = useState(false);
+
+  // Initialize with environment configuration
+  useEffect(() => {
+    const envConfig = getEnvConfig();
+    
+    // Create token contracts map from SUPPORTED_TOKENS
+    const tokenContracts: {[symbol: string]: string} = {};
+    SUPPORTED_TOKENS.forEach(token => {
+      tokenContracts[token.symbol] = token.fungibleAsset;
+    });
+    
+    configureApi({
+      useMock: envConfig.useMock,
+      contractAddress: envConfig.contractAddress,
+      networkUrl: envConfig.networkUrl,
+      tokenContracts
+    });
+    
+    setApiConfigState(getApiConfig());
+  }, []);
 
   const setApiConfig = (config: Partial<ApiConfig>) => {
     setIsLoading(true);

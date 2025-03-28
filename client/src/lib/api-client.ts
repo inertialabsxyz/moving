@@ -1,19 +1,29 @@
 
-import { Pool, Stream, mockPools, mockStreams, mockWallet, Wallet } from "./types";
+import { Vault, Stream, mockVaults, mockStreams, mockWallet, Wallet, SUPPORTED_TOKENS } from "./types";
 
 // Configuration for API - allows switching between mock and real backend
 export type ApiConfig = {
   useMock: boolean;
   contractAddress?: string;
   networkUrl?: string;
+  tokenContracts: {
+    [symbol: string]: string;
+  };
 };
 
 // Load initial config from environment variables with fallbacks
 const getInitialConfig = (): ApiConfig => {
+  // Create token contracts map from SUPPORTED_TOKENS
+  const tokenContracts: {[symbol: string]: string} = {};
+  SUPPORTED_TOKENS.forEach(token => {
+    tokenContracts[token.symbol] = token.fungibleAsset;
+  });
+
   return {
     useMock: import.meta.env.VITE_USE_MOCK !== 'false',
     contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS || undefined,
-    networkUrl: import.meta.env.VITE_NETWORK_URL || undefined
+    networkUrl: import.meta.env.VITE_NETWORK_URL || undefined,
+    tokenContracts
   };
 };
 

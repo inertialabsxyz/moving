@@ -5,21 +5,21 @@ import { CreateStreamDialog } from "@/components/create-stream-dialog";
 
 interface StreamsListProps {
   streams: Stream[];
-  poolId: string;
+  vaultId: string;
 }
 
-export function StreamsList({ streams, poolId }: StreamsListProps) {
+export function StreamsList({ streams, vaultId }: StreamsListProps) {
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Payment Streams</h2>
-        <CreateStreamDialog poolId={poolId} />
+        <CreateStreamDialog vaultId={vaultId} />
       </div>
       
       {streams.length > 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {streams.map((stream) => (
-            <StreamCard key={stream.id} stream={stream} hidePoolInfo={true} />
+            <StreamCard key={stream.id} stream={stream} hideVaultInfo={true} />
           ))}
         </div>
       ) : (
@@ -28,7 +28,7 @@ export function StreamsList({ streams, poolId }: StreamsListProps) {
           <p className="text-muted-foreground mb-4">
             Create your first payment stream to start sending funds.
           </p>
-          <CreateStreamDialog poolId={poolId} />
+          <CreateStreamDialog vaultId={vaultId} />
         </div>
       )}
     </div>

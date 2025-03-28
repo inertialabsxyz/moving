@@ -15,23 +15,23 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface DrainPoolDialogProps {
+interface DrainVaultDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (amount: number) => void;
-  poolBalance: number;
+  vaultBalance: number;
   tokenType: string;
 }
 
-export function DrainPoolDialog({ 
+export function DrainVaultDialog({
   open, 
   onOpenChange, 
   onConfirm, 
-  poolBalance, 
+  vaultBalance, 
   tokenType 
-}: DrainPoolDialogProps) {
+}: DrainVaultDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [amount, setAmount] = useState<string>(poolBalance.toString());
+  const [amount, setAmount] = useState<string>(vaultBalance.toString());
   const [error, setError] = useState<string>("");
   
   const validateAmount = (value: string) => {
@@ -44,8 +44,8 @@ export function DrainPoolDialog({
       setError("Amount must be greater than zero");
       return false;
     }
-    if (numValue > poolBalance) {
-      setError(`Cannot exceed vault balance of ${poolBalance.toFixed(2)} ${tokenType}`);
+    if (numValue > vaultBalance) {
+      setError(`Cannot exceed vault balance of ${vaultBalance.toFixed(2)} ${tokenType}`);
       return false;
     }
     setError("");
@@ -71,7 +71,7 @@ export function DrainPoolDialog({
   const handleDialogOpen = (open: boolean) => {
     if (open) {
       // Reset to default state when opening
-      setAmount(poolBalance.toString());
+      setAmount(vaultBalance.toString());
       setError("");
     }
     onOpenChange(open);
@@ -100,14 +100,14 @@ export function DrainPoolDialog({
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="drain-amount">
-              Amount <span className="text-xs text-muted-foreground">(Max: {poolBalance.toFixed(2)} {tokenType})</span>
+              Amount <span className="text-xs text-muted-foreground">(Max: {vaultBalance.toFixed(2)} {tokenType})</span>
             </Label>
             <Input
               id="drain-amount"
               type="number"
               step="0.01"
               min="0.01"
-              max={poolBalance}
+              max={vaultBalance}
               value={amount}
               onChange={handleAmountChange}
               className={error ? "border-destructive" : ""}

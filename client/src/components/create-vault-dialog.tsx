@@ -21,15 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SUPPORTED_TOKENS, TokenSymbol } from "@/lib/types";
 
-export function CreatePoolDialog() {
+export function CreateVaultDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [token, setToken] = useState("USDC");
+  const [token, setToken] = useState<TokenSymbol>(SUPPORTED_TOKENS[0].symbol);
   const [loading, setLoading] = useState(false);
 
-  const handleCreatePool = async (e: React.FormEvent) => {
+  const handleCreateVault = async (e: React.FormEvent) => {
     e.preventDefault();
     
     setLoading(true);
@@ -42,7 +43,7 @@ export function CreatePoolDialog() {
     setOpen(false);
     setName("");
     setAmount("");
-    setToken("USDC");
+    setToken(SUPPORTED_TOKENS[0].symbol);
   };
 
   return (
@@ -59,7 +60,7 @@ export function CreatePoolDialog() {
             Create a new payment vault to stream funds to recipients.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleCreatePool}>
+        <form onSubmit={handleCreateVault}>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Vault Name</Label>
@@ -93,14 +94,17 @@ export function CreatePoolDialog() {
               <Label htmlFor="token">Token</Label>
               <Select
                 value={token}
-                onValueChange={(value) => setToken(value)}
+                onValueChange={(value: TokenSymbol) => setToken(value)}
               >
                 <SelectTrigger id="token">
                   <SelectValue placeholder="Select token" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USDC">USDC</SelectItem>
-                  <SelectItem value="MOVE">MOVE</SelectItem>
+                  {SUPPORTED_TOKENS.map((token) => (
+                    <SelectItem key={token.symbol} value={token.symbol}>
+                      {token.symbol}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">

@@ -4,29 +4,29 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/navigation";
-import { formatCurrency, mockPools } from "@/lib/types";
-import { DrainPoolDialog } from "@/components/pool/drain-pool-dialog";
-import { EditPoolNameDialog } from "@/components/pool/edit-pool-name-dialog";
-import { DeleteVaultDialog } from "@/components/pool/delete-vault-dialog";
-import { PoolHeader } from "@/components/pool/pool-header";
-import { PoolStats } from "@/components/pool/pool-stats";
-import { StreamsList } from "@/components/pool/streams-list";
-import { AddCreditDialog } from "@/components/pool/add-credit-dialog";
-import { VaultNotFound } from "@/components/pool/vault-not-found";
+import { formatCurrency, mockVaults } from "@/lib/types";
+import { DrainVaultDialog } from "@/components/vault/drain-vault-dialog.tsx";
+import { EditVaultNameDialog } from "@/components/vault/edit-vault-name-dialog.tsx";
+import { DeleteVaultDialog } from "@/components/vault/delete-vault-dialog";
+import { VaultHeader } from "@/components/vault/vault-header.tsx";
+import { VaultStats } from "@/components/vault/vault-stats.tsx";
+import { StreamsList } from "@/components/vault/streams-list";
+import { AddCreditDialog } from "@/components/vault/add-credit-dialog";
+import { VaultNotFound } from "@/components/vault/vault-not-found";
 
-const Pool = () => {
+const Vault = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [addCreditOpen, setAddCreditOpen] = useState(false);
-  const [drainPoolOpen, setDrainPoolOpen] = useState(false);
+  const [drainVaultOpen, setDrainVaultOpen] = useState(false);
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [deleteVaultOpen, setDeleteVaultOpen] = useState(false);
   const [creditAmount, setCreditAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast: hookToast } = useToast();
 
-  // Find the pool from the mockPools
-  const pool = mockPools.find((p) => p.id === id);
+  // Find the vault from the mockVaults
+  const vault = mockVaults.find((p) => p.id === id);
   
   // Copy address to clipboard
   const copyToClipboard = (address: string) => {
@@ -37,19 +37,19 @@ const Pool = () => {
     });
   };
 
-  if (!pool) {
+  if (!vault) {
     return <VaultNotFound />;
   }
 
   // Calculate the total amount being streamed per second
-  const totalStreamingRate = pool.streams.reduce(
+  const totalStreamingRate = vault.streams.reduce(
     (sum, stream) => sum + (stream.active ? stream.amountPerSecond : 0),
     0
   );
 
-  // Calculate how long the pool will last at the current rate
+  // Calculate how long the vault will last at the current rate
   const timeLeftInSeconds = totalStreamingRate > 0 
-    ? pool.balance / totalStreamingRate 
+    ? vault.balance / totalStreamingRate
     : 0;
   
   // Format the time left
@@ -67,8 +67,8 @@ const Pool = () => {
 
   // Calculate the percentage of active streams to all streams
   const activeStreamsPercentage = 
-    pool.streams.length > 0
-      ? (pool.streams.filter(s => s.active).length / pool.streams.length) * 100
+    vault.streams.length > 0
+      ? (vault.streams.filter(s => s.active).length / vault.streams.length) * 100
       : 0;
 
   const handleAddCredit = async (e: React.FormEvent) => {
@@ -85,15 +85,15 @@ const Pool = () => {
     setCreditAmount("");
   };
 
-  const handleDrainPool = async (amount: number) => {
+  const handleDrainVault = async (amount: number) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     toast.success(`Drained ${formatCurrency(amount)} from vault`);
-    setDrainPoolOpen(false);
+    setDrainVaultOpen(false);
   };
   
-  const handleSavePoolName = (newName: string) => {
+  const handleSaveVaultName = (newName: string) => {
     // In a real app, this would make an API call
     // For now, just show a toast
     toast.success(`Vault name updated to "${newName}"`);
@@ -103,14 +103,14 @@ const Pool = () => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    toast.success(`Vault "${poolName}" has been deleted`);
+    toast.success(`Vault "${vaultName}" has been deleted`);
     
     // Navigate back to vaults list
-    navigate("/pools");
+    navigate("/vaults");
   };
   
-  // Get the pool name or use the ID as fallback
-  const poolName = pool?.name || `Vault ${pool?.id.split("-")[1]}`;
+  // Get the vault name or use the ID as fallback
+  const vaultName = vault?.name || `Vault ${vault?.id.split("-")[1]}`;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -118,26 +118,26 @@ const Pool = () => {
       
       <main className="pt-20 pb-16 px-4 sm:px-6 max-w-7xl mx-auto">
         <section className="page-transition">
-          <PoolHeader 
-            poolName={poolName}
+          <VaultHeader
+            vaultName={vaultName}
             onEditNameClick={() => setEditNameOpen(true)}
           />
           
-          <PoolStats 
-            pool={pool}
+          <VaultStats
+            vault={vault}
             totalStreamingRate={totalStreamingRate}
             timeLeftInSeconds={timeLeftInSeconds}
             activeStreamsPercentage={activeStreamsPercentage}
             formatTimeLeft={formatTimeLeft}
             onAddCreditClick={() => setAddCreditOpen(true)}
-            onDrainPoolClick={() => setDrainPoolOpen(true)}
+            onDrainVaultClick={() => setDrainVaultOpen(true)}
             onDeleteVaultClick={() => setDeleteVaultOpen(true)}
             copyToClipboard={copyToClipboard}
           />
           
           <StreamsList 
-            streams={pool.streams}
-            poolId={pool.id}
+            streams={vault.streams}
+            vaultId={vault.id}
           />
         </section>
       </main>
@@ -146,35 +146,35 @@ const Pool = () => {
         open={addCreditOpen}
         onOpenChange={setAddCreditOpen}
         onConfirm={handleAddCredit}
-        tokenType={pool?.token || ""}
+        tokenType={vault?.token || ""}
         creditAmount={creditAmount}
         setCreditAmount={setCreditAmount}
         loading={loading}
       />
       
-      <DrainPoolDialog
-        open={drainPoolOpen}
-        onOpenChange={setDrainPoolOpen}
-        onConfirm={handleDrainPool}
-        poolBalance={pool?.balance || 0}
-        tokenType={pool?.token || ""}
+      <DrainVaultDialog
+        open={drainVaultOpen}
+        onOpenChange={setDrainVaultOpen}
+        onConfirm={handleDrainVault}
+        vaultBalance={vault?.balance || 0}
+        tokenType={vault?.token || ""}
       />
       
-      <EditPoolNameDialog
+      <EditVaultNameDialog
         open={editNameOpen}
         onOpenChange={setEditNameOpen}
-        currentName={poolName}
-        onSave={handleSavePoolName}
+        currentName={vaultName}
+        onSave={handleSaveVaultName}
       />
       
       <DeleteVaultDialog
         open={deleteVaultOpen}
         onOpenChange={setDeleteVaultOpen}
         onConfirm={handleDeleteVault}
-        vaultName={poolName}
+        vaultName={vaultName}
       />
     </div>
   );
 };
 
-export default Pool;
+export default Vault;

@@ -1,18 +1,10 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { WalletIcon, Wallet2, Home, LayoutDashboard, ArrowDownUp, ChevronDown } from "lucide-react";
-import { formatAddress, mockWallet } from "@/lib/types";
-import { useState, useEffect } from "react";
+import { WalletIcon, Home, LayoutDashboard, ArrowDownUp, ChevronDown } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
+import { useState, useEffect } from "react";
+import { WalletButton } from "./wallet/wallet-button";
 
 export function Navigation() {
   const location = useLocation();
@@ -58,9 +50,9 @@ export function Navigation() {
                 <span>Dashboard</span>
               </div>
             </Link>
-            <Link to="/pools" className={navLinkClass("/pools")}>
+            <Link to="/vaults" className={navLinkClass("/vaults")}>
               <div className="flex items-center gap-1">
-                <Wallet2 className="h-4 w-4" />
+                <WalletIcon className="h-4 w-4" />
                 <span>My Vaults</span>
               </div>
             </Link>
@@ -75,27 +67,7 @@ export function Navigation() {
         
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-1">
-                <WalletIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">{formatAddress(mockWallet.address)}</span>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Wallet</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex flex-col items-start gap-1">
-                <span className="text-xs text-muted-foreground">Address</span>
-                <span className="wallet-address">{mockWallet.address}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <span>Disconnect</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <WalletButton />
         </div>
       </div>
     </header>

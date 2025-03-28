@@ -14,7 +14,7 @@ export function VaultNotFound() {
             The vault you're looking for doesn't exist or you don't have access to it.
           </p>
           <Button asChild className="dark:bg-purple-700 dark:hover:bg-purple-600">
-            <Link to="/pools">Back to Vaults</Link>
+            <Link to="/vaults">Back to Vaults</Link>
           </Button>
         </div>
       </main>
