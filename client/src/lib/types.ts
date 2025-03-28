@@ -31,7 +31,7 @@ export interface Wallet {
 }
 
 // Define supported tokens in one central location
-export type TokenSymbol = 'APT' | 'STRM';
+export type TokenSymbol = 'APT' | 'INT';
 
 export interface TokenInfo {
   symbol: TokenSymbol;
@@ -48,7 +48,7 @@ export const SUPPORTED_TOKENS: TokenInfo[] = [
     fungibleAsset: '0x1::aptos_coin::AptosCoin'
   },
   {
-    symbol: 'STRM',
+    symbol: 'INT',
     name: 'Stream',
     color: 'bg-purple-500/90',
     fungibleAsset: '0x1::stream_coin::StreamCoin'
@@ -72,7 +72,7 @@ export const mockWallet: Wallet = {
   isCurrentUser: true,
   balances: {
     "APT": 8750.42,
-    "STRM": 12340.89
+    "INT": 12340.89
   }
 };
 
@@ -116,7 +116,7 @@ export const mockVaults: Vault[] = [
     name: "Marketing Expenses",
     owner: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
     balance: 2000,
-    token: "STRM",
+    token: "INT",
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     streams: [
       {
@@ -127,7 +127,7 @@ export const mockVaults: Vault[] = [
         amountPerSecond: 0.008,
         totalStreamed: 243.56,
         totalWithdrawn: 200,
-        token: "STRM",
+        token: "INT",
         active: true,
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
       }
@@ -146,7 +146,7 @@ export const mockStreams: Stream[] = [
     amountPerSecond: 0.012,
     totalStreamed: 532.12,
     totalWithdrawn: 450,
-    token: "STRM",
+    token: "INT",
     active: true,
     createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
   }
