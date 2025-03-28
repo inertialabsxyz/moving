@@ -1,10 +1,11 @@
 
 import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
-import { configureApi, getApiConfig, ApiConfig } from "@/lib/api-client";
+import { configureApi, getApiConfig, resetApiConfig, ApiConfig } from "@/lib/api-client";
 
 interface ApiContextType {
   apiConfig: ApiConfig;
   setApiConfig: (config: Partial<ApiConfig>) => void;
+  resetToEnvConfig: () => void;
   isLoading: boolean;
 }
 
@@ -29,8 +30,23 @@ export function ApiProvider({ children }: { children: ReactNode }) {
     }, 500);
   };
 
+  const resetToEnvConfig = () => {
+    setIsLoading(true);
+    
+    // Reset to environment variables
+    resetApiConfig();
+    
+    // Update state
+    setApiConfigState(getApiConfig());
+    
+    // Simulate configuration time
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+  };
+
   return (
-    <ApiContext.Provider value={{ apiConfig, setApiConfig, isLoading }}>
+    <ApiContext.Provider value={{ apiConfig, setApiConfig, resetToEnvConfig, isLoading }}>
       {children}
     </ApiContext.Provider>
   );

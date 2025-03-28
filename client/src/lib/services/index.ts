@@ -1,5 +1,5 @@
 
-import { configureApi, getApiConfig } from "../api-client";
+import { configureApi, getApiConfig, resetApiConfig } from "../api-client";
 import { walletService } from "./wallet-service";
 import { poolService } from "./pool-service";
 import { streamService } from "./stream-service";
@@ -9,6 +9,7 @@ export {
   // Configuration
   configureApi,
   getApiConfig,
+  resetApiConfig,
   
   // Services
   walletService,

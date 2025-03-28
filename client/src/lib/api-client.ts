@@ -8,10 +8,17 @@ export type ApiConfig = {
   networkUrl?: string;
 };
 
-// Default to using mock data
-let apiConfig: ApiConfig = {
-  useMock: true
+// Load initial config from environment variables with fallbacks
+const getInitialConfig = (): ApiConfig => {
+  return {
+    useMock: import.meta.env.VITE_USE_MOCK !== 'false',
+    contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS || undefined,
+    networkUrl: import.meta.env.VITE_NETWORK_URL || undefined
+  };
 };
+
+// Initialize with values from env vars
+let apiConfig: ApiConfig = getInitialConfig();
 
 /**
  * Configure the API client
@@ -26,6 +33,14 @@ export function configureApi(config: Partial<ApiConfig>) {
  */
 export function getApiConfig(): ApiConfig {
   return { ...apiConfig };
+}
+
+/**
+ * Reset API configuration to values from environment variables
+ */
+export function resetApiConfig(): void {
+  apiConfig = getInitialConfig();
+  console.log("API configuration reset to env values:", apiConfig);
 }
 
 /**
