@@ -23,9 +23,9 @@ export function ThemeToggle() {
         checked={theme === "dark"}
         onCheckedChange={() => setTheme(theme === "dark" ? "light" : "dark")}
         aria-label="Toggle dark mode"
-        className="data-[state=checked]:bg-purple-700"
+        className="data-[state=checked]:bg-blue-600"
       />
-      <Moon className="h-4 w-4 text-purple-300" />
+      <Moon className="h-4 w-4 text-blue-600" />
     </div>
   );
 }

@@ -1,5 +1,4 @@
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardHover } from "@/components/ui/card-hover";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -7,6 +6,9 @@ import { Progress } from "@/components/ui/progress";
 import { formatAddress, formatCurrency, Stream } from "@/lib/types";
 import { ArrowUpRight, Check, Clock, Copy, Edit } from "lucide-react";
 import { Link } from "react-router-dom";
+import { TokenIcon } from "@/components/ui/token-icon";
+import { useToast } from "@/hooks/use-toast";
+import { useVaultQuery } from "@/hooks/use-vaults-query";
 
 interface StreamCardDetailsProps {
   stream: Stream;
@@ -37,32 +39,42 @@ export function StreamCardDetails({
   onCancel,
   hideVaultInfo = false
 }: StreamCardDetailsProps) {
-  // Function to get token badge style
-  const getTokenBadge = (token: string) => {
-    switch (token) {
-      case "USDC":
-        return "bg-blue-500/90 text-white border-0";
-      case "MOVE":
-        return "bg-purple-500/90 text-white border-0";
-      default:
-        return "bg-gray-500 text-white border-0";
-    }
+  const { toast } = useToast();
+  const { data: vault } = useVaultQuery(stream.vaultId);
+  
+  // Function to copy wallet address to clipboard
+  const copyToClipboard = (address: string) => {
+    navigator.clipboard.writeText(address);
+    toast({
+      title: "Address Copied",
+      description: "The wallet address has been copied to your clipboard."
+    });
   };
-
+  
+  // Get vault name
+  const vaultName = vault?.name || `Vault ${stream.vaultId.split('-')[1]}`;
+  
   return (
     <CardHover className="h-full w-full overflow-hidden relative">
       <div className="absolute top-4 right-4 flex gap-1">
         {!hideVaultInfo && (
           <>
             <HoverCard>
-              <HoverCardTrigger>
-                <Badge variant="outline" className="bg-secondary/50 hover:bg-secondary/70 cursor-pointer">
-                  Vault {stream.vaultId.split('-')[1]}
-                </Badge>
+              <HoverCardTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-xs bg-secondary/50 hover:bg-secondary/70 px-2 py-0.5 rounded"
+                  asChild
+                >
+                  <Link to={`/vaults/${stream.vaultId}`}>
+                    {vaultName}
+                  </Link>
+                </Button>
               </HoverCardTrigger>
               <HoverCardContent className="w-48">
                 <div className="text-sm">
-                  <p className="font-semibold">Vault {stream.vaultId.split('-')[1]}</p>
+                  <p className="font-semibold">{vaultName}</p>
                   <p className="text-muted-foreground text-xs mt-1">
                     Click to view vault details and related streams
                   </p>
@@ -70,15 +82,15 @@ export function StreamCardDetails({
               </HoverCardContent>
             </HoverCard>
             
-            <Badge variant="token" className={isReceiving ? "bg-emerald-100 text-emerald-700 border-0" : "bg-blue-100 text-blue-700 border-0"}>
+            <div className="text-xs px-2 py-0.5 rounded bg-secondary/30">
               {isReceiving ? "Incoming" : "Outgoing"}
-            </Badge>
+            </div>
           </>
         )}
         
-        <Badge variant={isActive ? "default" : "secondary"}>
+        <div className="text-xs px-2 py-0.5 rounded bg-secondary/50">
           {isActive ? "Active" : "Paused"}
-        </Badge>
+        </div>
       </div>
 
       <div className="p-6">
@@ -111,11 +123,12 @@ export function StreamCardDetails({
               <div className="text-sm text-muted-foreground mb-1">
                 Streaming rate
               </div>
-              <div className="text-lg font-semibold flex items-center gap-1">
+              <div className="text-lg font-semibold flex items-center gap-1.5">
                 {formatCurrency(stream.amountPerSecond)} 
-                <Badge variant="token" className={`${getTokenBadge(stream.token)}`}>
-                  {stream.token}
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <TokenIcon token={stream.token} />
+                  <span>{stream.token}</span>
+                </div>
                 <span className="text-sm">/sec</span>
               </div>
             </div>
@@ -124,11 +137,12 @@ export function StreamCardDetails({
               <div className="text-sm text-muted-foreground mb-1">
                 Total streamed
               </div>
-              <div className="text-lg font-semibold flex items-center">
+              <div className="text-lg font-semibold flex items-center gap-1.5">
                 {formatCurrency(currentTotal)} 
-                <Badge variant="token" className={`ml-1 ${getTokenBadge(stream.token)}`}>
-                  {stream.token}
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <TokenIcon token={stream.token} />
+                  <span>{stream.token}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -142,6 +156,7 @@ export function StreamCardDetails({
                   variant="ghost" 
                   size="icon" 
                   className="h-5 w-5 p-0"
+                  onClick={() => copyToClipboard(stream.destination)}
                 >
                   <Copy className="h-3 w-3" />
                 </Button>
@@ -150,16 +165,20 @@ export function StreamCardDetails({
             
             <div className="flex justify-between text-sm mb-1 text-muted-foreground">
               <span>Withdrawn</span>
-              <span>
-                {formatCurrency(stream.totalWithdrawn)} {stream.token}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span>{formatCurrency(stream.totalWithdrawn)}</span>
+                <TokenIcon token={stream.token} size="sm" />
+                <span>{stream.token}</span>
+              </div>
             </div>
             
             <div className="flex justify-between text-sm mb-1.5">
               <span>Available to withdraw</span>
-              <span className="font-medium">
-                {formatCurrency(pendingAmount)} {stream.token}
-              </span>
+              <div className="flex items-center gap-1.5 font-medium">
+                <span>{formatCurrency(pendingAmount)}</span>
+                <TokenIcon token={stream.token} size="sm" />
+                <span>{stream.token}</span>
+              </div>
             </div>
             
             <Progress value={withdrawalProgress} className="h-1.5 mb-4" />

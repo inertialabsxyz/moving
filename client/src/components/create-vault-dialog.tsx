@@ -13,7 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -21,25 +20,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SUPPORTED_TOKENS, TokenSymbol } from "@/lib/types";
+import { SUPPORTED_TOKENS, TokenSymbol, mockWallet } from "@/lib/types";
+import { useCreateVaultMutation } from "@/hooks/use-vault-mutations";
 
 export function CreateVaultDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [token, setToken] = useState<TokenSymbol>(SUPPORTED_TOKENS[0].symbol);
-  const [loading, setLoading] = useState(false);
+  
+  // Use the create vault mutation hook
+  const createVaultMutation = useCreateVaultMutation();
 
   const handleCreateVault = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    setLoading(true);
+    // Validate input
+    const initialBalance = parseFloat(amount);
+    if (isNaN(initialBalance) || initialBalance <= 0) return;
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Create vault data
+    const vaultData = {
+      name: name || `Vault ${Date.now().toString().slice(-4)}`,
+      balance: initialBalance,
+      token,
+      owner: mockWallet.address,
+    };
     
-    toast.success(`Vault "${name || 'Unnamed'}" created with ${amount} ${token}!`);
-    setLoading(false);
+    // Execute the mutation
+    await createVaultMutation.mutateAsync(vaultData);
+    
+    // Reset form and close dialog
     setOpen(false);
     setName("");
     setAmount("");
@@ -120,8 +131,11 @@ export function CreateVaultDialog() {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !amount}>
-              {loading ? "Creating..." : "Create Vault"}
+            <Button 
+              type="submit" 
+              disabled={createVaultMutation.isPending || !amount}
+            >
+              {createVaultMutation.isPending ? "Creating..." : "Create Vault"}
             </Button>
           </DialogFooter>
         </form>

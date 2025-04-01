@@ -1,8 +1,8 @@
 
 import { Wallet2 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Vault, formatCurrency } from "@/lib/types";
-import { StatsCard, TokenDisplay } from "./stats-card";
+import { StatsCard } from "./stats-card";
+import { TokenIcon } from "@/components/ui/token-icon";
 
 interface VaultsCardProps {
   userVaults: Vault[];
@@ -22,11 +22,13 @@ export function VaultsCard({ userVaults, vaultTokens }: VaultsCardProps) {
         <>
           <div className="text-xs text-muted-foreground mb-1">Total funds across all vaults:</div>
           {Object.entries(vaultTokens).map(([token, amount]) => (
-            <TokenDisplay 
-              key={token} 
-              token={token} 
-              amount={formatCurrency(amount)} 
-            />
+            <div key={token} className="flex items-center justify-between text-sm">
+              <span className="font-medium">{formatCurrency(amount)}</span>
+              <div className="flex items-center gap-1.5">
+                <TokenIcon token={token} />
+                <span>{token}</span>
+              </div>
+            </div>
           ))}
         </>
       )}

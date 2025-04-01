@@ -1,8 +1,8 @@
 
 import { Banknote } from "lucide-react";
-import { formatCurrency, getTokenColorClass } from "@/lib/types";
+import { formatCurrency } from "@/lib/types";
 import { StatsCard } from "./stats-card";
-import { Badge } from "@/components/ui/badge";
+import { TokenIcon } from "@/components/ui/token-icon";
 
 interface WithdrawableCardProps {
   availableToWithdraw: Record<string, number>;
@@ -23,9 +23,10 @@ export function WithdrawableCard({ availableToWithdraw }: WithdrawableCardProps)
               <div className="text-2xl font-bold">
                 {formatCurrency(amount)}
               </div>
-              <Badge variant="token" className={`${getTokenColorClass(token)} text-white border-0 text-sm px-2 py-0.5`}>
-                {token}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <TokenIcon token={token} size="lg" />
+                <span className="text-sm font-medium">{token}</span>
+              </div>
             </div>
           ))}
         </div>

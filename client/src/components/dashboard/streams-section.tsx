@@ -4,16 +4,18 @@ import { StreamCard } from "@/components/stream-card";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Stream } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface StreamsSectionProps {
   streams: Stream[];
   title: string;
   linkTo: string;
   isReceiving?: boolean;
+  isLoading?: boolean;
 }
 
-export function StreamsSection({ streams, title, linkTo, isReceiving = false }: StreamsSectionProps) {
-  if (streams.length === 0) return null;
+export function StreamsSection({ streams, title, linkTo, isReceiving = false, isLoading = false }: StreamsSectionProps) {
+  if (streams.length === 0 && !isLoading) return null;
   
   return (
     <div className="mb-8">
@@ -25,10 +27,29 @@ export function StreamsSection({ streams, title, linkTo, isReceiving = false }: 
           </Link>
         </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {streams.map((stream) => (
-          <StreamCard key={stream.id} stream={stream} isReceiving={isReceiving} />
-        ))}
+      <div className="space-y-3">
+        {isLoading ? (
+          [1, 2].map((i) => (
+            <div key={`skeleton-${i}`} className="p-6 rounded-lg border">
+              <Skeleton className="h-6 w-1/2 mb-2" />
+              <Skeleton className="h-4 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-2/3 mb-4" />
+              <div className="flex justify-between">
+                <Skeleton className="h-5 w-1/3" />
+                <Skeleton className="h-5 w-1/4" />
+              </div>
+            </div>
+          ))
+        ) : (
+          streams.map((stream) => (
+            <StreamCard 
+              key={stream.id} 
+              stream={stream} 
+              isReceiving={isReceiving} 
+              compact={true} 
+            />
+          ))
+        )}
       </div>
     </div>
   );

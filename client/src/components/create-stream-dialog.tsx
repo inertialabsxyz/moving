@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,14 +20,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
-import { mockVaults, SUPPORTED_TOKENS } from "@/lib/types";
+import { useVaultsQuery } from "@/hooks/use-vaults-query";
+import { useCreateStreamMutation } from "@/hooks/use-stream-mutations";
+import { SUPPORTED_TOKENS } from "@/lib/types";
+import { useNavigate } from "react-router-dom";
 
 interface CreateStreamDialogProps {
   vaultId?: string;
+  onSuccess?: (streamId: string) => void;
 }
 
-export function CreateStreamDialog({ vaultId }: CreateStreamDialogProps) {
+export function CreateStreamDialog({ vaultId, onSuccess }: CreateStreamDialogProps) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [selectedVault, setSelectedVault] = useState(vaultId || "");
   const [name, setName] = useState("");
@@ -34,28 +39,33 @@ export function CreateStreamDialog({ vaultId }: CreateStreamDialogProps) {
   const [recipient, setRecipient] = useState("");
   const [rate, setRate] = useState("");
   const [timeUnit, setTimeUnit] = useState("second");
-  const [loading, setLoading] = useState(false);
   const [vaultToken, setVaultToken] = useState("");
+
+  // Fetch vaults data
+  const { data: vaults = [] } = useVaultsQuery();
+  
+  // Use create stream mutation
+  const createStreamMutation = useCreateStreamMutation();
 
   useEffect(() => {
     // Set initial vault token if vaultId is provided
     if (vaultId) {
-      const vault = mockVaults.find(p => p.id === vaultId);
+      const vault = vaults.find(p => p.id === vaultId);
       if (vault) {
         setVaultToken(vault.token);
       }
     }
-  }, [vaultId]);
+  }, [vaultId, vaults]);
 
   // Update vault token when selected vault changes
   useEffect(() => {
     if (selectedVault) {
-      const vault = mockVaults.find(p => p.id === selectedVault);
+      const vault = vaults.find(p => p.id === selectedVault);
       if (vault) {
         setVaultToken(vault.token);
       }
     }
-  }, [selectedVault]);
+  }, [selectedVault, vaults]);
 
   // Validate name field when it changes
   const validateName = (value: string) => {
@@ -98,10 +108,15 @@ export function CreateStreamDialog({ vaultId }: CreateStreamDialogProps) {
     }
   };
 
+  // Format number to remove decimal part if it's zero
+  const formatNumber = (num: number): string => {
+    return Number.isInteger(num) ? num.toString() : num.toFixed(num < 0.01 ? 6 : num < 1 ? 4 : 2);
+  };
+
   // Calculate equivalent rates for display
   const calculateEquivalentRates = (rateValue: string, unit: string) => {
     const numericRate = parseFloat(rateValue);
-    if (isNaN(numericRate)) return { perSecond: 0, perHour: 0, perDay: 0 };
+    if (isNaN(numericRate)) return { perSecond: 0, perHour: 0, perDay: 0, perMonth: 0 };
     
     let perSecond: number;
     
@@ -125,7 +140,8 @@ export function CreateStreamDialog({ vaultId }: CreateStreamDialogProps) {
     return {
       perSecond,
       perHour: perSecond * 3600,
-      perDay: perSecond * 86400
+      perDay: perSecond * 86400,
+      perMonth: perSecond * 86400 * 30
     };
   };
 
@@ -137,21 +153,48 @@ export function CreateStreamDialog({ vaultId }: CreateStreamDialogProps) {
       return;
     }
     
-    setLoading(true);
-    
     // Convert rate to per-second rate
-    const ratePerSecond = calculateRatePerSecond(rate, timeUnit);
+    const amountPerSecond = calculateRatePerSecond(rate, timeUnit);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Get the selected vault
+    const vault = vaults.find(v => v.id === (vaultId || selectedVault));
+    if (!vault) return;
     
-    toast.success("Stream created successfully!");
-    setLoading(false);
-    setOpen(false);
-    setName("");
-    setRecipient("");
-    setRate("");
-    setTimeUnit("second");
+    // Create stream data
+    const streamData = {
+      vaultId: vaultId || selectedVault,
+      name, // Pass the name to be used in the stream
+      source: vault.owner,
+      destination: recipient,
+      amountPerSecond,
+      token: vault.token,
+      active: true
+    };
+    
+    // Execute the mutation
+    try {
+      const result = await createStreamMutation.mutateAsync(streamData);
+      
+      // Reset form and close dialog on success
+      setOpen(false);
+      setName("");
+      setRecipient("");
+      setRate("");
+      setTimeUnit("second");
+      if (!vaultId) {
+        setSelectedVault("");
+      }
+      
+      // Call onSuccess callback with the new stream ID if provided
+      if (onSuccess) {
+        onSuccess(result.id);
+      } else {
+        // Navigate to streams page with the newly created stream ID
+        navigate(`/streams?tab=outgoing&highlight=${result.id}`);
+      }
+    } catch (error) {
+      // Error handling is already in the mutation
+    }
   };
 
   const equivalentRates = calculateEquivalentRates(rate, timeUnit);
@@ -198,7 +241,7 @@ export function CreateStreamDialog({ vaultId }: CreateStreamDialogProps) {
                     <SelectValue placeholder="Select a vault" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockVaults.map((vault) => (
+                    {vaults.map((vault) => (
                       <SelectItem key={vault.id} value={vault.id}>
                         {vault.name || `Vault ${vault.id.split("-")[1]}`} ({vault.token})
                       </SelectItem>
@@ -249,20 +292,20 @@ export function CreateStreamDialog({ vaultId }: CreateStreamDialogProps) {
               {(selectedVault || vaultId) && rate && (
                 <div className="text-sm text-muted-foreground mt-1">
                   <p>This is approximately:</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-1">
-                    <p className="font-medium">
-                      {equivalentRates.perSecond.toFixed(6)} {vaultToken}/second
-                    </p>
-                    <p className="font-medium">
-                      {equivalentRates.perHour.toFixed(4)} {vaultToken}/hour
-                    </p>
-                    <p className="font-medium">
-                      {equivalentRates.perDay.toFixed(2)} {vaultToken}/day
-                    </p>
-                    <p className="font-medium">
-                      {(equivalentRates.perDay * 30).toFixed(2)} {vaultToken}/month
-                    </p>
-                  </div>
+                  <ul className="space-y-1 mt-1">
+                    <li>
+                      {formatNumber(equivalentRates.perSecond)} {vaultToken}/second
+                    </li>
+                    <li>
+                      {formatNumber(equivalentRates.perHour)} {vaultToken}/hour
+                    </li>
+                    <li>
+                      {formatNumber(equivalentRates.perDay)} {vaultToken}/day
+                    </li>
+                    <li>
+                      {formatNumber(equivalentRates.perMonth)} {vaultToken}/month
+                    </li>
+                  </ul>
                 </div>
               )}
             </div>
@@ -273,9 +316,9 @@ export function CreateStreamDialog({ vaultId }: CreateStreamDialogProps) {
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || !name || nameError !== "" || !recipient || !rate || (!vaultId && !selectedVault)}
+              disabled={createStreamMutation.isPending || !name || nameError !== "" || !recipient || !rate || (!vaultId && !selectedVault)}
             >
-              {loading ? "Creating..." : "Create Stream"}
+              {createStreamMutation.isPending ? "Creating..." : "Create Stream"}
             </Button>
           </DialogFooter>
         </form>

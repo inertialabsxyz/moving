@@ -1,4 +1,3 @@
-
 export interface Vault {
   id: string;
   owner: string;
@@ -20,6 +19,7 @@ export interface Stream {
   token: string;
   active: boolean;
   createdAt: string;
+  name?: string; // Add name property to Stream interface
 }
 
 export interface Wallet {
@@ -88,6 +88,7 @@ export const mockVaults: Vault[] = [
       {
         id: "stream-1",
         vaultId: "vault-1",
+        name: "Employee Salary",
         source: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
         destination: "0xA742a3D13571B2ec9A1b2Fc038f7ACD9E7ed0E39",
         amountPerSecond: 0.01,
@@ -100,6 +101,7 @@ export const mockVaults: Vault[] = [
       {
         id: "stream-2",
         vaultId: "vault-1",
+        name: "Contractor Payment",
         source: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
         destination: "0xB456b7C8fE9c543A0F9a61Dd13DA4208F8b1EfA2",
         amountPerSecond: 0.005,
@@ -122,6 +124,7 @@ export const mockVaults: Vault[] = [
       {
         id: "stream-3",
         vaultId: "vault-2",
+        name: "Agency Retainer",
         source: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
         destination: "0xC123c452Fe98B876A516FB89D68e3c3BF1B6D8E9",
         amountPerSecond: 0.008,
@@ -136,11 +139,49 @@ export const mockVaults: Vault[] = [
 ];
 
 export const mockStreams: Stream[] = [
-  ...mockVaults[0].streams,
-  ...mockVaults[1].streams,
+  {
+    id: "stream-1",
+    vaultId: "vault-1",
+    name: "Employee Salary",
+    source: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
+    destination: "0xA742a3D13571B2ec9A1b2Fc038f7ACD9E7ed0E39",
+    amountPerSecond: 0.01,
+    totalStreamed: 845.23,
+    totalWithdrawn: 700,
+    token: "APT",
+    active: true,
+    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: "stream-2",
+    vaultId: "vault-1",
+    name: "Contractor Payment",
+    source: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
+    destination: "0xB456b7C8fE9c543A0F9a61Dd13DA4208F8b1EfA2",
+    amountPerSecond: 0.005,
+    totalStreamed: 349.87,
+    totalWithdrawn: 300,
+    token: "APT",
+    active: true,
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: "stream-3",
+    vaultId: "vault-2",
+    name: "Agency Retainer",
+    source: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
+    destination: "0xC123c452Fe98B876A516FB89D68e3c3BF1B6D8E9",
+    amountPerSecond: 0.008,
+    totalStreamed: 243.56,
+    totalWithdrawn: 200,
+    token: "INT",
+    active: true,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+  },
   {
     id: "stream-4",
     vaultId: "vault-3",
+    name: "Monthly Revenue Share",
     source: "0xD789dF5E91BB3Fa403f7A3B5Eb42E31D74F2B3A8",
     destination: "0x7F1AcF3C7e1BcF2Ee11337B4ebF4E2818aeC3F1D",
     amountPerSecond: 0.012,

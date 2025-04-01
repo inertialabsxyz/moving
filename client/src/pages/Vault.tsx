@@ -1,10 +1,8 @@
-
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { Navigation } from "@/components/navigation";
-import { formatCurrency, mockVaults } from "@/lib/types";
+import { formatCurrency } from "@/lib/types";
 import { DrainVaultDialog } from "@/components/vault/drain-vault-dialog.tsx";
 import { EditVaultNameDialog } from "@/components/vault/edit-vault-name-dialog.tsx";
 import { DeleteVaultDialog } from "@/components/vault/delete-vault-dialog";
@@ -13,6 +11,13 @@ import { VaultStats } from "@/components/vault/vault-stats.tsx";
 import { StreamsList } from "@/components/vault/streams-list";
 import { AddCreditDialog } from "@/components/vault/add-credit-dialog";
 import { VaultNotFound } from "@/components/vault/vault-not-found";
+import { useVaultQuery } from "@/hooks/use-vaults-query";
+import { 
+  useUpdateVaultMutation, 
+  useDeleteVaultMutation,
+  useAddCreditMutation,
+  useDrainVaultMutation 
+} from "@/hooks/use-vault-mutations";
 
 const Vault = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,11 +27,16 @@ const Vault = () => {
   const [editNameOpen, setEditNameOpen] = useState(false);
   const [deleteVaultOpen, setDeleteVaultOpen] = useState(false);
   const [creditAmount, setCreditAmount] = useState("");
-  const [loading, setLoading] = useState(false);
   const { toast: hookToast } = useToast();
-
-  // Find the vault from the mockVaults
-  const vault = mockVaults.find((p) => p.id === id);
+  
+  // Use the React Query hook to fetch vault data
+  const { data: vault, isLoading, error } = useVaultQuery(id);
+  
+  // Use mutation hooks
+  const updateVaultMutation = useUpdateVaultMutation();
+  const deleteVaultMutation = useDeleteVaultMutation();
+  const addCreditMutation = useAddCreditMutation();
+  const drainVaultMutation = useDrainVaultMutation();
   
   // Copy address to clipboard
   const copyToClipboard = (address: string) => {
@@ -37,6 +47,35 @@ const Vault = () => {
     });
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <Navigation />
+        <main className="pt-20 pb-16 px-4 sm:px-6 max-w-7xl mx-auto">
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-pulse text-muted-foreground">Loading vault details...</div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <Navigation />
+        <main className="pt-20 pb-16 px-4 sm:px-6 max-w-7xl mx-auto">
+          <div className="flex items-center justify-center py-16 text-destructive">
+            Error loading vault details
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Show not found state if no vault is returned
   if (!vault) {
     return <VaultNotFound />;
   }
@@ -74,36 +113,44 @@ const Vault = () => {
   const handleAddCredit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    setLoading(true);
+    if (!id || !creditAmount) return;
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const amount = parseFloat(creditAmount);
+    if (isNaN(amount) || amount <= 0) return;
     
-    toast.success(`Added ${formatCurrency(parseFloat(creditAmount))} to vault`);
-    setLoading(false);
+    // Use the mutation hook
+    await addCreditMutation.mutateAsync({ id, amount });
+    
     setAddCreditOpen(false);
     setCreditAmount("");
   };
 
   const handleDrainVault = async (amount: number) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!id) return;
     
-    toast.success(`Drained ${formatCurrency(amount)} from vault`);
+    // Use the mutation hook
+    await drainVaultMutation.mutateAsync({ id, amount });
+    
     setDrainVaultOpen(false);
   };
   
   const handleSaveVaultName = (newName: string) => {
-    // In a real app, this would make an API call
-    // For now, just show a toast
-    toast.success(`Vault name updated to "${newName}"`);
+    if (!id) return;
+    
+    // Use the mutation hook
+    updateVaultMutation.mutate({ 
+      id, 
+      updates: { name: newName } 
+    });
+    
+    setEditNameOpen(false);
   };
   
   const handleDeleteVault = async () => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (!id) return;
     
-    toast.success(`Vault "${vaultName}" has been deleted`);
+    // Use the mutation hook
+    await deleteVaultMutation.mutateAsync(id);
     
     // Navigate back to vaults list
     navigate("/vaults");
@@ -135,10 +182,8 @@ const Vault = () => {
             copyToClipboard={copyToClipboard}
           />
           
-          <StreamsList 
-            streams={vault.streams}
-            vaultId={vault.id}
-          />
+          {/* Here's the fixed StreamsList call */}
+          <StreamsList vaultId={vault.id} />
         </section>
       </main>
       
@@ -149,7 +194,7 @@ const Vault = () => {
         tokenType={vault?.token || ""}
         creditAmount={creditAmount}
         setCreditAmount={setCreditAmount}
-        loading={loading}
+        loading={addCreditMutation.isPending}
       />
       
       <DrainVaultDialog

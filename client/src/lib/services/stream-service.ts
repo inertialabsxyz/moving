@@ -15,7 +15,8 @@ export const streamService = {
     
     if (config.useMock) {
       await mockDelay();
-      return [...localMockStreams];
+      // Filter out inactive streams
+      return [...localMockStreams].filter(stream => stream.active);
     } else {
       // Example: const streams = await contract.getAllStreams();
       throw new Error("Smart contract integration not implemented yet");
@@ -30,7 +31,10 @@ export const streamService = {
     
     if (config.useMock) {
       await mockDelay();
-      return localMockStreams.filter(s => s.vaultId === vaultId).map(s => ({ ...s }));
+      // Filter out inactive streams - ensure we're only returning active streams
+      return localMockStreams
+        .filter(s => s.vaultId === vaultId && s.active)
+        .map(s => ({ ...s }));
     } else {
       // Example: const streams = await contract.getStreamsByVaultId(vaultId);
       throw new Error("Smart contract integration not implemented yet");
@@ -147,11 +151,11 @@ export const streamService = {
       
       localMockStreams[index] = updatedStream;
       
-      // Update in the vault too
+      // Make sure to update the vault's stream too
       const vault = await vaultService.getVaultsById(updatedStream.vaultId);
       if (vault) {
         const updatedVaultStreams = vault.streams.map(s => 
-          s.id === id ? updatedStream : s
+          s.id === id ? { ...s, active: false } : s
         );
         await vaultService.updateVault(vault.id, { streams: updatedVaultStreams });
       }

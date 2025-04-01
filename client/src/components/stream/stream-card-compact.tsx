@@ -1,10 +1,13 @@
+
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatAddress, Stream, getTokenColorClass } from "@/lib/types";
-import { Copy, Edit, Clock, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Stream } from "@/lib/types";
+import { Copy, Edit, Clock } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { CardHover } from "@/components/ui/card-hover";
 import { useToast } from "@/hooks/use-toast";
+import { TokenIcon } from "@/components/ui/token-icon";
+import { Link } from "react-router-dom";
+import { useVaultQuery } from "@/hooks/use-vaults-query";
 
 interface StreamCardCompactProps {
   stream: Stream;
@@ -24,6 +27,7 @@ export function StreamCardCompact({
   hideVaultInfo = false
 }: StreamCardCompactProps) {
   const { toast } = useToast();
+  const { data: vault } = useVaultQuery(stream.vaultId);
 
   // Function to copy wallet address to clipboard
   const copyToClipboard = (address: string) => {
@@ -42,17 +46,8 @@ export function StreamCardCompact({
     }).format(amount);
   };
 
-  // Function to get token badge style
-  const getTokenBadge = (token: string) => {
-    switch (token) {
-      case "USDC":
-        return "bg-blue-500/90 text-white border-0";
-      case "MOVE":
-        return "bg-purple-500/90 text-white border-0";
-      default:
-        return "bg-gray-500 text-white border-0";
-    }
-  };
+  // Get vault name
+  const vaultName = vault?.name || `Vault ${stream.vaultId.split('-')[1]}`;
 
   return (
     <CardHover className="h-full w-full p-4">
@@ -71,11 +66,12 @@ export function StreamCardCompact({
             </Button>
           )}
         </div>
-        <div className="text-sm font-medium flex items-center gap-1">
+        <div className="text-sm font-medium flex items-center gap-1.5">
           {formatAmount(stream.amountPerSecond)} 
-          <Badge variant="token" className={`ml-1 ${getTokenColorClass(stream.token)} text-white border-0`}>
-            {stream.token}
-          </Badge>
+          <div className="flex items-center gap-1">
+            <TokenIcon token={stream.token} size="sm" />
+            <span>{stream.token}</span>
+          </div>
           /sec
         </div>
       </div>
@@ -83,29 +79,36 @@ export function StreamCardCompact({
         {!hideVaultInfo && (
           <>
             <HoverCard>
-              <HoverCardTrigger>
-                <Badge variant="outline" className="bg-secondary/50 hover:bg-secondary/70 cursor-pointer">
-                  From Vault {stream.vaultId.split('-')[1]}
-                </Badge>
+              <HoverCardTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-xs bg-secondary/50 hover:bg-secondary/70 px-2 py-0.5 rounded"
+                  asChild
+                >
+                  <Link to={`/vaults/${stream.vaultId}`}>
+                    {vaultName}
+                  </Link>
+                </Button>
               </HoverCardTrigger>
               <HoverCardContent className="w-48">
                 <div className="text-sm">
-                  <p className="font-semibold">Vault {stream.vaultId.split('-')[1]}</p>
+                  <p className="font-semibold">{vaultName}</p>
                   <p className="text-muted-foreground text-xs mt-1">Tap to view vault details and related streams</p>
                 </div>
               </HoverCardContent>
             </HoverCard>
             
-            <Badge variant="token" className={isReceiving ? "bg-emerald-100 text-emerald-700 border-0" : "bg-blue-100 text-blue-700 border-0"}>
+            <div className="text-xs px-2 py-0.5 rounded bg-secondary/30">
               {isReceiving ? "Incoming" : "Outgoing"}
-            </Badge>
+            </div>
           </>
         )}
         
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           {isReceiving ? 'From:' : 'To:'} 
           <div className="flex items-center gap-1">
-            <span>{formatAddress(isReceiving ? stream.source : stream.destination)}</span>
+            <span>{isReceiving ? stream.source : stream.destination}</span>
             <Button 
               variant="ghost" 
               size="icon" 

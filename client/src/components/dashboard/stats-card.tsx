@@ -1,9 +1,9 @@
+
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { getTokenColorClass } from "@/lib/types";
+import { TokenIcon } from "@/components/ui/token-icon";
 
 interface StatsCardProps {
   title: string;
@@ -68,9 +68,10 @@ export function TokenDisplay({
       {label && <div className="text-xs text-muted-foreground mb-1">{label}</div>}
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium">{amount}</span>
-        <Badge variant="token" className={`${getTokenColorClass(token)} text-white border-0 text-xs px-1.5 py-0.5`}>
-          {token}
-        </Badge>
+        <div className="flex items-center gap-1.5">
+          <TokenIcon token={token} />
+          <span>{token}</span>
+        </div>
       </div>
     </>
   );

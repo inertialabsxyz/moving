@@ -8,11 +8,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { WalletIcon, ChevronDown, Coins } from "lucide-react";
+import { WalletIcon, ChevronDown } from "lucide-react";
 import { useWalletContext } from "@/context/WalletContext";
 import { formatAddress, formatCurrency } from "@/lib/types";
 import { useApi } from "@/context/ApiContext";
 import { WalletSelector } from "./wallet-selector";
+import { TokenIcon } from "@/components/ui/token-icon";
 
 export function WalletButton() {
   const { currentWallet, connecting, connected, disconnectWallet } = useWalletContext();
@@ -53,8 +54,8 @@ export function WalletButton() {
                 {currentWallet.balances && Object.entries(currentWallet.balances).length > 0 ? (
                   Object.entries(currentWallet.balances).map(([token, balance]) => (
                     <div key={token} className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <Coins className="h-4 w-4 text-primary/70" />
+                      <div className="flex items-center gap-1.5">
+                        <TokenIcon token={token} />
                         <span className="text-sm">{token}</span>
                       </div>
                       <span className="text-sm font-medium">{formatCurrency(balance)}</span>

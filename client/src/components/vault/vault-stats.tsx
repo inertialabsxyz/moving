@@ -1,14 +1,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Copy, MoreVertical, Plus, RefreshCw, Trash, Wallet2 } from "lucide-react";
-import { formatAddress, formatCurrency } from "@/lib/types";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Copy, Plus, Trash, Wallet2 } from "lucide-react";
+import { formatCurrency } from "@/lib/types";
 
 interface VaultStatsProps {
   vault: {
@@ -56,7 +50,7 @@ export function VaultStats({
             <div className="flex flex-col gap-1">
               <span className="text-sm text-muted-foreground">Vault Owner</span>
               <div className="flex items-center gap-1">
-                <span className="wallet-address">{formatAddress(vault.owner)}</span>
+                <span className="wallet-address">{vault.owner}</span>
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -117,26 +111,13 @@ export function VaultStats({
           >
             <Wallet2 className="h-4 w-4" /> Drain Vault
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                <span>Refresh</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="text-destructive gap-2"
-                onClick={onDeleteVaultClick}
-              >
-                <Trash className="h-4 w-4" />
-                <span>Delete Vault</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button 
+            variant="outline" 
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive gap-1"
+            onClick={onDeleteVaultClick}
+          >
+            <Trash className="h-4 w-4" /> Delete Vault
+          </Button>
         </div>
       </div>
     </div>

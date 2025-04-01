@@ -2,14 +2,29 @@
 import { Navigation } from "@/components/navigation";
 import { VaultCard } from "@/components/vault-card.tsx";
 import { CreateVaultDialog } from "@/components/create-vault-dialog.tsx";
-import { mockVaults, mockWallet } from "@/lib/types";
+import { mockWallet } from "@/lib/types";
 import { Wallet2 } from "lucide-react";
+import { useVaultsQuery } from "@/hooks/use-vaults-query";
+import { useState } from "react";
+import { ViewToggle, ViewMode } from "@/components/ui/view-toggle";
+import { VaultListItem } from "@/components/vault-list-item";
+import { 
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody
+} from "@/components/ui/table";
 
 const Vaults = () => {
-  // Get only user's vaults
-  const userVaults = mockVaults.filter(
-    (vault) => vault.owner === mockWallet.address
-  );
+  // Use the React Query hook to fetch vaults
+  const { data: vaults, isLoading, error } = useVaultsQuery();
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  
+  // Get only user's vaults (filtering will happen after data loads)
+  const userVaults = vaults
+    ? vaults.filter((vault) => vault.owner === mockWallet.address)
+    : [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -24,15 +39,34 @@ const Vaults = () => {
                 Manage your payment vaults
               </p>
             </div>
-            <CreateVaultDialog />
+            <div className="flex items-center gap-2">
+              <ViewToggle view={viewMode} onChange={setViewMode} />
+              <CreateVaultDialog />
+            </div>
           </div>
           
-          {userVaults.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {userVaults.map((vault) => (
-                <VaultCard key={vault.id} vault={vault} />
-              ))}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="animate-pulse text-muted-foreground">Loading vaults...</div>
             </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-16 text-destructive">
+              Error loading vaults
+            </div>
+          ) : userVaults.length > 0 ? (
+            viewMode === "grid" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {userVaults.map((vault) => (
+                  <VaultCard key={vault.id} vault={vault} />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {userVaults.map((vault) => (
+                  <VaultCard key={vault.id} vault={vault} compact={true} />
+                ))}
+              </div>
+            )
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="bg-muted rounded-full p-4 mb-4">
