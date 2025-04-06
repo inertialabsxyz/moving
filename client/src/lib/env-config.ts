@@ -17,8 +17,8 @@ export function getEnvConfig() {
 
   return {
     // Check if mock mode is enabled
-    // Defaults to true if not specified
-    useMock: import.meta.env.VITE_USE_MOCK !== 'false',
+    // Now defaults to false if not specified
+    useMock: import.meta.env.VITE_USE_MOCK === 'true',
     
     // Contract address for the payment stream contract
     contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS || undefined,
@@ -31,7 +31,7 @@ export function getEnvConfig() {
     
     // Log the current environment mode
     logMode: () => {
-      console.log(`API Mode: ${import.meta.env.VITE_USE_MOCK !== 'false' ? 'MOCK' : 'REAL'}`);
+      console.log(`API Mode: ${import.meta.env.VITE_USE_MOCK === 'true' ? 'MOCK' : 'REAL'}`);
       if (import.meta.env.VITE_CONTRACT_ADDRESS) {
         console.log(`Contract: ${import.meta.env.VITE_CONTRACT_ADDRESS}`);
       }

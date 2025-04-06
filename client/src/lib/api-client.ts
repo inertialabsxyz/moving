@@ -5,7 +5,6 @@ import { Vault, Stream, mockVaults, mockStreams, mockWallet, Wallet, SUPPORTED_T
 export type ApiConfig = {
   useMock: boolean;
   contractAddress?: string;
-  networkUrl?: string;
   tokenContracts: {
     [symbol: string]: string;
   };
@@ -21,8 +20,7 @@ const getInitialConfig = (): ApiConfig => {
 
   return {
     useMock: import.meta.env.VITE_USE_MOCK !== 'false',
-    contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS || undefined,
-    networkUrl: import.meta.env.VITE_NETWORK_URL || undefined,
+    contractAddress: import.meta.env.VITE_INERTIA_ADDRESS || undefined,
     tokenContracts
   };
 };

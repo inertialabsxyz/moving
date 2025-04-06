@@ -24,13 +24,12 @@ export function ApiProvider({ children }: { children: ReactNode }) {
     // Create token contracts map from SUPPORTED_TOKENS
     const tokenContracts: {[symbol: string]: string} = {};
     SUPPORTED_TOKENS.forEach(token => {
-      tokenContracts[token.symbol] = token.fungibleAsset;
+      tokenContracts[token.symbol] = token.fungibleAssetAddress;
     });
     
     configureApi({
       useMock: envConfig.useMock,
       contractAddress: envConfig.contractAddress,
-      networkUrl: envConfig.networkUrl,
       tokenContracts
     });
     

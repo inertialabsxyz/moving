@@ -3,7 +3,7 @@ import { Navigation } from "@/components/navigation";
 import { VaultCard } from "@/components/vault-card.tsx";
 import { CreateVaultDialog } from "@/components/create-vault-dialog.tsx";
 import { mockWallet } from "@/lib/types";
-import { Wallet2 } from "lucide-react";
+import { Wallet2, AlertCircle } from "lucide-react";
 import { useVaultsQuery } from "@/hooks/use-vaults-query";
 import { useState } from "react";
 import { ViewToggle, ViewMode } from "@/components/ui/view-toggle";
@@ -15,8 +15,14 @@ import {
   TableHead,
   TableBody
 } from "@/components/ui/table";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useWalletContext } from "@/context/WalletContext";
+import { Button } from "@/components/ui/button";
 
 const Vaults = () => {
+  // Use the wallet context to check connection status
+  const { connected } = useWalletContext();
+  
   // Use the React Query hook to fetch vaults
   const { data: vaults, isLoading, error } = useVaultsQuery();
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -50,8 +56,30 @@ const Vaults = () => {
               <div className="animate-pulse text-muted-foreground">Loading vaults...</div>
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center py-16 text-destructive">
-              Error loading vaults
+            <div className="flex flex-col gap-4 py-8">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  There was a problem loading your vaults. Please try refreshing the page.
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : !connected ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="bg-muted rounded-full p-4 mb-4">
+                <Wallet2 className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">Wallet not connected</h2>
+              <p className="text-muted-foreground max-w-md mb-6">
+                Please connect your wallet to view and manage your payment vaults. You'll need a connected wallet to create and fund vaults.
+              </p>
+              <Alert className="mb-6 max-w-md mx-auto">
+                <AlertTitle className="text-center">Why connect a wallet?</AlertTitle>
+                <AlertDescription className="text-center">
+                  Your wallet is used to sign transactions when creating vaults and streams. It also identifies you as the owner of these vaults.
+                </AlertDescription>
+              </Alert>
             </div>
           ) : userVaults.length > 0 ? (
             viewMode === "grid" ? (
@@ -73,9 +101,18 @@ const Vaults = () => {
                 <Wallet2 className="h-8 w-8 text-muted-foreground" />
               </div>
               <h2 className="text-xl font-semibold mb-2">No vaults yet</h2>
-              <p className="text-muted-foreground max-w-md mb-6">
-                Create your first payment vault to start sending money to recipients in continuous streams.
+              <p className="text-muted-foreground max-w-md mb-2">
+                You haven't created any payment vaults yet. You need to create a vault before you can start creating payment streams.
               </p>
+              <p className="text-muted-foreground max-w-md mb-6">
+                Vaults hold funds that are used to finance your continuous payment streams to recipients.
+              </p>
+              <Alert className="mb-6 max-w-md mx-auto">
+                <AlertTitle className="text-center">Why create a vault?</AlertTitle>
+                <AlertDescription className="text-center">
+                  Vaults are required to create payment streams. Each stream must be connected to a vault that will provide its funding.
+                </AlertDescription>
+              </Alert>
               <CreateVaultDialog />
             </div>
           )}

@@ -1,3 +1,5 @@
+import * as process from "node:process";
+
 export interface Vault {
   id: string;
   owner: string;
@@ -31,13 +33,13 @@ export interface Wallet {
 }
 
 // Define supported tokens in one central location
-export type TokenSymbol = 'APT' | 'INT';
+export type TokenSymbol = 'APT' | 'INT' | 'USDC';
 
 export interface TokenInfo {
   symbol: TokenSymbol;
   name: string;
   color: string;
-  fungibleAsset: string;
+  fungibleAssetAddress: string;
 }
 
 export const SUPPORTED_TOKENS: TokenInfo[] = [
@@ -45,13 +47,19 @@ export const SUPPORTED_TOKENS: TokenInfo[] = [
     symbol: 'APT',
     name: 'Aptos',
     color: 'bg-blue-500/90',
-    fungibleAsset: '0x1::aptos_coin::AptosCoin'
+    fungibleAssetAddress: '0xa',
   },
   {
     symbol: 'INT',
     name: 'Stream',
     color: 'bg-purple-500/90',
-    fungibleAsset: '0x1::stream_coin::StreamCoin'
+    fungibleAssetAddress: import.meta.env.VITE_INT_ADDRESS ?? '',
+  },
+  {
+    symbol: 'USDC',
+    name: 'USDC',
+    color: 'bg-purple-500/90',
+    fungibleAssetAddress: import.meta.env.VITE_USDC_ADDRESS ?? '',
   }
 ];
 
@@ -198,9 +206,10 @@ export const formatAddress = (address: string): string => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-export const formatCurrency = (amount: number): string => {
+export const formatCurrency = (amount: number, decimals: number = 8): string => {
+  const displayAmount = amount / Math.pow(10, decimals);
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
+    maximumFractionDigits: 8
+  }).format(displayAmount);
 };

@@ -20,7 +20,7 @@ interface Object {
     inner: string
 }
 
-async function getSTRMAddress() : Promise<`0x${string}`> {
+async function getINTAddress() : Promise<`0x${string}`> {
     const result = await aptos.view({
         payload: {
             function: `${deployerAccount.accountAddress}::inertia_coin::get_metadata`,
@@ -29,12 +29,12 @@ async function getSTRMAddress() : Promise<`0x${string}`> {
     });
 
     const addr =  (result[0] as Object).inner || "";
-    if (!addr.startsWith("0x")) throw new Error("Invalid STRM address");
+    if (!addr.startsWith("0x")) throw new Error("Invalid INT address");
     return addr as `0x${string}`;
 }
 
-const Tokens : { APT: `0x${string}`; STRM: `0x${string}` } = {
-    APT: "0xa", STRM: "0x0",
+const Tokens : { APT: `0x${string}`; INT: `0x${string}` } = {
+    APT: "0xa", INT: "0x0",
 }
 
 async function migrateAccountToFA(signer: Ed25519Account) {
@@ -50,7 +50,7 @@ async function migrateAccountToFA(signer: Ed25519Account) {
     await aptos.waitForTransaction({transactionHash: pendingTransaction.hash});
 }
 
-async function mintSTRM(signer: Ed25519Account, account: Ed25519Account) {
+async function mintINT(signer: Ed25519Account, account: Ed25519Account) {
     const transaction = await aptos.transaction.build.simple({
         sender: signer.accountAddress,
         data: {
@@ -78,7 +78,7 @@ async function createAccount() : Promise<Ed25519Account> {
     const account = Account.generate();
     await aptos.fundAccount({accountAddress: account.accountAddress, amount: MINT_AMOUNT});
     await migrateAccountToFA(account);
-    await mintSTRM(deployerAccount, account);
+    await mintINT(deployerAccount, account);
     return account;
 }
 
@@ -198,7 +198,7 @@ interface PoolView {
 
 beforeAll(async () => {
     deployerAccount = await deploy();
-    Tokens.STRM = await getSTRMAddress();
+    Tokens.INT = await getINTAddress();
 }, 60000);
 
 test("Create a vault", async () => {
@@ -354,7 +354,7 @@ test("Create multiple vaults", async () => {
     // Create the vault
     let vaultAmount = 100;
 
-    let tokens = [Tokens.APT, Tokens.STRM];
+    let tokens = [Tokens.APT, Tokens.INT];
     let accounts = [
         await createAccount(),
         await createAccount(),

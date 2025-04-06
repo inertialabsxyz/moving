@@ -2,33 +2,25 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { 
   useWallet,
-  AptosWalletAdapterProvider
+  AptosWalletAdapterProvider,
 } from '@aptos-labs/wallet-adapter-react';
-import { PetraWallet } from 'petra-plugin-wallet-adapter';
-import { PontemWallet } from '@pontem/wallet-adapter-plugin';
-import { MartianWallet } from '@martianwallet/aptos-wallet-adapter';
+import {AccountAddress, Aptos, AptosConfig, Network} from "@aptos-labs/ts-sdk";
 import { useToast } from '@/hooks/use-toast';
 import { useApi } from './ApiContext';
 import { Wallet, mockWallet } from '@/lib/types';
+import {walletService} from "@/lib/services";
 
 // Define the wallet context type
 interface WalletContextType {
   connecting: boolean;
   connected: boolean;
   currentWallet: Wallet;
-  connectWallet: () => void;
+  connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
 }
 
 // Create the context
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
-
-// Define supported wallets
-const wallets = [
-  new PetraWallet(),
-  new PontemWallet(),
-  new MartianWallet()
-];
 
 export function WalletContextProvider({ children }: { children: ReactNode }) {
   // Use the ApiContext to check if we're using mock data
@@ -40,32 +32,62 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
     connect, 
     disconnect, 
     account, 
-    connected,
-    wallet, 
-    wallets: availableWallets 
+    connected: adapterConnected,
+    wallet,
+    network,
   } = useWallet();
 
+  // Track connected state in our own state to ensure UI updates
+  const [connected, setConnected] = useState(false);
+  
   // Add a connecting state since it's not provided by the wallet adapter
   const [connecting, setConnecting] = useState(false);
   
   // State for the current wallet information
   const [currentWallet, setCurrentWallet] = useState<Wallet>(mockWallet);
 
+
+  // Update our connected state when the adapter's connected state changes
+  useEffect(() => {
+    if (adapterConnected && account) {
+      setConnected(true);
+    } else {
+      // If not connected via adapter and not using mock, set to false
+      if (!apiConfig.useMock) {
+        setConnected(false);
+      }
+    }
+  }, [adapterConnected, account, apiConfig.useMock]);
+
+  // Log wallet state whenever it changes for debugging
+  useEffect(() => {
+    console.log("WalletContext: connected =", connected);
+    console.log("WalletContext: account =", account);
+    console.log("WalletContext: wallet =", wallet);
+  }, [connected, account, wallet]);
+
   // Update wallet information when connected
   useEffect(() => {
     if (connected && account) {
-      setCurrentWallet({
-        address: account.address,
-        isCurrentUser: true,
-        balances: currentWallet.balances // Keep existing balances for now
+      console.log("Connected to wallet:", account.toString());
+
+      const aptos = new Aptos(new AptosConfig({
+          network: network?.name,
+          fullnode: network?.url
+        })
+      );
+
+      walletService.getCurrentWallet(aptos, account.address.toString()).then(wallet => {
+        // Update current wallet with connected account information
+        setCurrentWallet(wallet);
+        // Log current wallet state
+        console.log("Connected to wallet:", account.address);
       });
-      
-      // Log current wallet state
-      console.log("Connected to wallet:", account.address);
     } else if (!connected && !apiConfig.useMock) {
+      console.log("Not connected to wallet");
       // If disconnected and not using mock, show empty wallet
       setCurrentWallet({
-        address: '',
+        address: "",
         isCurrentUser: false,
         balances: {}
       });
@@ -77,7 +99,7 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
     }
   }, [connected, account, apiConfig.useMock]);
 
-  // Connect to wallet function
+  // Connect to wallet function - simplified to only use Nightly
   const connectWallet = async () => {
     if (apiConfig.useMock) {
       toast({
@@ -88,21 +110,20 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
     }
     
     try {
-      // If wallet is not defined, user will be prompted to select one
-      if (!wallet) {
-        toast({
-          title: "Select Wallet",
-          description: "Please select a wallet to connect"
-        });
-        return;
-      }
-      
       setConnecting(true);
-      connect(wallet.name);
+      
+      // Connect to Nightly wallet using the proper WalletName type
+      console.log("Connecting to Nightly wallet");
+      // Use the wallet name from the NightlyWallet instance
+      connect("Nightly");
+      
+      console.log("Successfully connected to Nightly wallet");
+      // Explicitly set connected state here for immediate UI update
+      setConnected(true);
       
       toast({
         title: "Wallet Connected",
-        description: `Successfully connected to ${wallet.name}`
+        description: "Successfully connected to Nightly wallet"
       });
     } catch (error) {
       console.error("Wallet connection error:", error);
@@ -111,15 +132,17 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
         title: "Connection Failed",
         description: error instanceof Error ? error.message : "Failed to connect wallet"
       });
+      setConnected(false);
     } finally {
       setConnecting(false);
     }
   };
 
   // Disconnect wallet function
-  const disconnectWallet = async () => {
+  const disconnectWallet = () => {
     try {
       disconnect();
+      setConnected(false);
       
       // If using mock, revert to mock wallet
       if (apiConfig.useMock) {
@@ -146,7 +169,7 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
       connected,
       currentWallet,
       connectWallet,
-      disconnectWallet
+      disconnectWallet,
     }}>
       {children}
     </WalletContext.Provider>
@@ -157,10 +180,12 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
 export function AptosWalletProvider({ children }: { children: ReactNode }) {
   return (
     <AptosWalletAdapterProvider
-      plugins={wallets}
-      autoConnect={false}
+      autoConnect={false} // Keep as false to avoid auto-connecting on page load
+      dappConfig={{
+        network: Network.TESTNET,
+      }}
       onError={(error: Error) => {
-        console.error("Wallet error:", error);
+        console.error("Wallet adapter error:", error);
       }}
     >
       <WalletContextProvider>
