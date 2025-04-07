@@ -73,7 +73,7 @@ export function WalletButton() {
         <DropdownMenuLabel>Wallet</DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        <DropdownMenuItem className="flex flex-col items-start gap-1">
+        <DropdownMenuLabel className="flex flex-col items-start gap-1">
           <span className="text-xs text-muted-foreground">Balances</span>
           <div className="w-full space-y-2 py-1">
             {currentWallet.balances && Object.entries(currentWallet.balances).length > 0 ? (
@@ -90,7 +90,7 @@ export function WalletButton() {
               <div className="text-sm text-muted-foreground">No balances available</div>
             )}
           </div>
-        </DropdownMenuItem>
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={disconnectWallet}>
           <LogOut className="h-4 w-4 mr-2" />
