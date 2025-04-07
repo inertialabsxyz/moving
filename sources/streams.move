@@ -44,7 +44,7 @@ module inertia::streams {
     }
 
     // A vault for any number of streams
-    struct Pool<T> has key {
+    struct Vault<T> has key {
         name: String,
         created: u64,
         owner: address,
@@ -67,24 +67,24 @@ module inertia::streams {
     }
 
     #[event]
-    struct PoolCreatedEvent has drop, store {
+    struct VaultCreatedEvent has drop, store {
         vault_addr: address
     }
 
     #[event]
-    struct PoolCreditedEvent has drop, store {
+    struct VaultCreditedEvent has drop, store {
         vault_addr: address,
         amount: u64
     }
 
     #[event]
-    struct PoolDrainedEvent has drop, store {
+    struct VaultDrainedEvent has drop, store {
         vault_addr: address,
         amount: u64
     }
 
     #[event]
-    struct PoolUpdatedEvent has drop, store {
+    struct VaultUpdatedEvent has drop, store {
         vault_addr: address,
         new_name: String
     }
@@ -134,7 +134,7 @@ module inertia::streams {
         token: Object<T>,
         destination: address,
         per_second: u64
-    ) acquires Pool {
+    ) acquires Vault {
         let stream_id = create_stream<T>(signer, name, token, destination, per_second);
         event::emit(StreamCreatedEvent { stream_id });
     }
@@ -145,9 +145,9 @@ module inertia::streams {
         token: Object<T>,
         destination: address,
         per_second: u64
-    ): vector<u8> acquires Pool {
+    ): vector<u8> acquires Vault {
         let vault_addr = vault_address(signer::address_of(signer), token);
-        let vault = borrow_global_mut<Pool<Object<T>>>(vault_addr);
+        let vault = borrow_global_mut<Vault<Object<T>>>(vault_addr);
         let stream_id = get_stream_id(
             vault_addr,
             destination,
@@ -175,13 +175,13 @@ module inertia::streams {
         stream_id
     }
 
-    public entry fun settle_vault<T: key>(vault_addr: address) acquires Pool {
-        let vault = borrow_global_mut<Pool<Object<T>>>(vault_addr);
+    public entry fun settle_vault<T: key>(vault_addr: address) acquires Vault {
+        let vault = borrow_global_mut<Vault<Object<T>>>(vault_addr);
         balance_vault(vault, true);
     }
 
     public fun balance_vault<T: key>(
-        vault: &mut Pool<Object<T>>, fail: bool
+        vault: &mut Vault<Object<T>>, fail: bool
     ) {
         let now = timestamp::now_seconds();
         // Get last time we updated and the delta from now
@@ -212,15 +212,15 @@ module inertia::streams {
 
     public entry fun make_withdrawal_from_stream<T: key>(
         vault_addr: address, stream_id: vector<u8>
-    ) acquires Pool {
-        let vault = borrow_global_mut<Pool<Object<T>>>(vault_addr);
+    ) acquires Vault {
+        let vault = borrow_global_mut<Vault<Object<T>>>(vault_addr);
         let outstanding = withdraw_from_stream(vault, stream_id);
         event::emit(WithdrawalEvent { stream_id, outstanding });
     }
 
     // Withdraws all owed to this point in time and returns outstanding if there is a deficit in the vault
     public fun withdraw_from_stream<T: key>(
-        vault: &mut Pool<Object<T>>, stream_id: vector<u8>
+        vault: &mut Vault<Object<T>>, stream_id: vector<u8>
     ): u64 {
         // Balance vault without failing
         balance_vault(vault, false);
@@ -259,8 +259,8 @@ module inertia::streams {
 
     public entry fun close_stream<T: key>(
         signer: &signer, vault_addr: address, stream_id: vector<u8>
-    ) acquires Pool {
-        let vault = borrow_global_mut<Pool<Object<T>>>(vault_addr);
+    ) acquires Vault {
+        let vault = borrow_global_mut<Vault<Object<T>>>(vault_addr);
         assert!(
             simple_map::contains_key(&vault.streams, &stream_id),
             error::invalid_argument(EEXISTS)
@@ -278,7 +278,7 @@ module inertia::streams {
 
     // Balance vault and pay amount due
     public fun cancel_stream<T: key>(
-        vault: &mut Pool<Object<T>>, stream_id: vector<u8>
+        vault: &mut Vault<Object<T>>, stream_id: vector<u8>
     ): u64 {
         let outstanding = withdraw_from_stream<T>(vault, stream_id);
         let stream = simple_map::borrow(&vault.streams, &stream_id);
@@ -353,7 +353,7 @@ module inertia::streams {
 
         let now = timestamp::now_seconds();
 
-        let vault = Pool {
+        let vault = Vault {
             name,
             created: now,
             owner: signer_addr,
@@ -370,28 +370,28 @@ module inertia::streams {
 
         move_to(&object_signer, vault);
 
-        event::emit(PoolCreatedEvent { vault_addr: signer::address_of(&object_signer) });
+        event::emit(VaultCreatedEvent { vault_addr: signer::address_of(&object_signer) });
     }
 
     public entry fun update_vault<T: key>(
         signer: &signer, new_name: String, token: Object<T>
-    ) acquires Pool {
+    ) acquires Vault {
         assert!(std::string::length(&new_name) > 2, error::invalid_argument(ENAME));
         let signer_addr = signer::address_of(signer);
         let vault_addr = vault_address(signer_addr, token);
-        let vault = borrow_global_mut<Pool<Object<T>>>(vault_addr);
+        let vault = borrow_global_mut<Vault<Object<T>>>(vault_addr);
         vault.name = new_name;
 
-        event::emit(PoolUpdatedEvent { vault_addr, new_name });
+        event::emit(VaultUpdatedEvent { vault_addr, new_name });
     }
 
     // Drain vault of amount to signing owner of vault
     public entry fun drain_vault<T: key>(
         signer: &signer, token: Object<T>, amount: u64
-    ) acquires Pool {
+    ) acquires Vault {
         let signer_addr = signer::address_of(signer);
         let vault_addr = vault_address(signer_addr, token);
-        let vault = borrow_global_mut<Pool<Object<T>>>(vault_addr);
+        let vault = borrow_global_mut<Vault<Object<T>>>(vault_addr);
 
         let wallet =
             primary_fungible_store::primary_store(signer::address_of(signer), token);
@@ -405,7 +405,7 @@ module inertia::streams {
             amount
         );
 
-        event::emit(PoolDrainedEvent { vault_addr, amount });
+        event::emit(VaultDrainedEvent { vault_addr, amount });
     }
 
     // Credit vault with amount, anyone can do this
@@ -414,19 +414,19 @@ module inertia::streams {
         vault_addr: address,
         token: Object<T>,
         amount: u64
-    ) acquires Pool {
-        let vault = borrow_global_mut<Pool<Object<T>>>(vault_addr);
+    ) acquires Vault {
+        let vault = borrow_global_mut<Vault<Object<T>>>(vault_addr);
         let wallet =
             primary_fungible_store::primary_store(signer::address_of(signer), token);
 
         fungible_asset::transfer(signer, wallet, vault.available.store, amount);
 
-        event::emit(PoolCreditedEvent { vault_addr, amount });
+        event::emit(VaultCreditedEvent { vault_addr, amount });
     }
 
     #[view]
-    public fun view_vault<T: key>(vault_addr: address): (String, u64, u64, u64) acquires Pool {
-        let vault = borrow_global<Pool<Object<T>>>(vault_addr);
+    public fun view_vault<T: key>(vault_addr: address): (String, u64, u64, u64) acquires Vault {
+        let vault = borrow_global<Vault<Object<T>>>(vault_addr);
         (
             vault.name,
             fungible_asset::balance(vault.available.store),
@@ -437,7 +437,7 @@ module inertia::streams {
 
     #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
     #[expected_failure(abort_code = 0x50008, location = aptos_framework::fungible_asset)]
-    fun test_create_vault(signer: &signer, aptos_framework: &signer) acquires Pool {
+    fun test_create_vault(signer: &signer, aptos_framework: &signer) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -460,7 +460,9 @@ module inertia::streams {
 
         // Verify we have a vault created with FA included and that as signer we can't now manipulate these funds
         let vault =
-            borrow_global<Pool<Object<TestToken>>>(vault_address(signer_addr, metadata));
+            borrow_global<Vault<Object<TestToken>>>(
+                vault_address(signer_addr, metadata)
+            );
         assert!(fungible_asset::balance(vault.available.store) == vault_amount, 1);
 
         let wallet = primary_fungible_store::primary_store(signer_addr, metadata);
@@ -474,7 +476,7 @@ module inertia::streams {
     }
 
     #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
-    fun test_update_vault(signer: &signer, aptos_framework: &signer) acquires Pool {
+    fun test_update_vault(signer: &signer, aptos_framework: &signer) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -494,7 +496,7 @@ module inertia::streams {
     }
 
     #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
-    fun test_drain_vault(signer: &signer, aptos_framework: &signer) acquires Pool {
+    fun test_drain_vault(signer: &signer, aptos_framework: &signer) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -517,7 +519,7 @@ module inertia::streams {
     #[expected_failure(abort_code = 0x10004, location = aptos_framework::fungible_asset)]
     fun test_excess_drain_vault(
         signer: &signer, aptos_framework: &signer
-    ) acquires Pool {
+    ) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -536,7 +538,7 @@ module inertia::streams {
     #[test(signer = @0xcafe, stranger = @0xface, aptos_framework = @aptos_framework)]
     fun test_credit_vault(
         signer: &signer, stranger: &signer, aptos_framework: &signer
-    ) acquires Pool {
+    ) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -566,7 +568,7 @@ module inertia::streams {
     }
 
     #[test(signer = @0xcafe, aptos_framework = @aptos_framework)]
-    fun test_view_vault(signer: &signer, aptos_framework: &signer) acquires Pool {
+    fun test_view_vault(signer: &signer, aptos_framework: &signer) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -618,7 +620,7 @@ module inertia::streams {
     #[test(aptos_framework = @aptos_framework, signer = @0xcafe, destination = @0xface)]
     fun test_create_stream_and_balance_vault(
         signer: &signer, destination: &signer, aptos_framework: &signer
-    ) acquires Pool {
+    ) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -641,7 +643,7 @@ module inertia::streams {
         );
         timestamp::update_global_time_for_test_secs(time_jump);
         let vault =
-            borrow_global_mut<Pool<Object<TestToken>>>(
+            borrow_global_mut<Vault<Object<TestToken>>>(
                 vault_address(signer_addr, metadata)
             );
         balance_vault(vault, true);
@@ -654,7 +656,7 @@ module inertia::streams {
     #[test(aptos_framework = @aptos_framework, signer = @0xcafe, destination = @0xface)]
     fun test_create_stream_and_withdraw(
         signer: &signer, destination: &signer, aptos_framework: &signer
-    ) acquires Pool {
+    ) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -680,7 +682,7 @@ module inertia::streams {
             );
         timestamp::update_global_time_for_test_secs(time_jump);
         let vault =
-            borrow_global_mut<Pool<Object<TestToken>>>(
+            borrow_global_mut<Vault<Object<TestToken>>>(
                 vault_address(signer_addr, metadata)
             );
         let outstanding = withdraw_from_stream(vault, stream_id);
@@ -696,7 +698,7 @@ module inertia::streams {
     #[test(aptos_framework = @aptos_framework, signer = @0xcafe, destination = @0xface)]
     fun test_create_stream_and_cancel(
         signer: &signer, destination: &signer, aptos_framework: &signer
-    ) acquires Pool {
+    ) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -722,7 +724,7 @@ module inertia::streams {
             );
         timestamp::update_global_time_for_test_secs(time_jump);
         let vault =
-            borrow_global_mut<Pool<Object<TestToken>>>(
+            borrow_global_mut<Vault<Object<TestToken>>>(
                 vault_address(signer_addr, metadata)
             );
         assert!(vault.total_secs == per_second);
@@ -739,7 +741,7 @@ module inertia::streams {
     #[test(aptos_framework = @aptos_framework, signer = @0xcafe, destination = @0xface)]
     fun test_create_stream_with_debt(
         signer: &signer, destination: &signer, aptos_framework: &signer
-    ) acquires Pool {
+    ) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -766,7 +768,7 @@ module inertia::streams {
             );
         timestamp::update_global_time_for_test_secs(time_jump);
         let vault =
-            borrow_global_mut<Pool<Object<TestToken>>>(
+            borrow_global_mut<Vault<Object<TestToken>>>(
                 vault_address(signer_addr, metadata)
             );
         let outstanding = withdraw_from_stream(vault, stream_id);
@@ -781,7 +783,7 @@ module inertia::streams {
     #[test(aptos_framework = @aptos_framework, signer = @0xcafe, destination = @0xface)]
     fun test_create_stream_with_debt_and_cancel(
         signer: &signer, destination: &signer, aptos_framework: &signer
-    ) acquires Pool {
+    ) acquires Vault {
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let (creator_ref, metadata) = create_test_token(signer);
         let (mint_ref, _, _) =
@@ -808,7 +810,7 @@ module inertia::streams {
             );
         timestamp::update_global_time_for_test_secs(time_jump);
         let vault =
-            borrow_global_mut<Pool<Object<TestToken>>>(
+            borrow_global_mut<Vault<Object<TestToken>>>(
                 vault_address(signer_addr, metadata)
             );
         let outstanding = cancel_stream(vault, stream_id);

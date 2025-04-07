@@ -2,14 +2,14 @@
 
 ## Overview
 
-**Moving** is a Move-based smart contract designed for **continuous token streaming** on the Movement blockchain. This contract enables users to create, manage, and interact with **streaming payment pools** in a decentralized manner.
+**Moving** is a Move-based smart contract designed for **continuous token streaming** on the Movement blockchain. This contract enables users to create, manage, and interact with **streaming payment vaults** in a decentralized manner.
 
 ## Features
 
 - **Token Streaming**: Users can create token streams to continuously transfer assets over time.
-- **Pool System**: Supports multiple streams from a single liquidity pool.
-- **Automatic Balancing**: Ensures token availability in the pool for active streams.
-- **Debt Management**: Tracks outstanding payments when the pool is underfunded.
+- **Vault System**: Supports multiple streams from a single vault.
+- **Automatic Balancing**: Ensures token availability in the vault for active streams.
+- **Debt Management**: Tracks outstanding payments when the vault is underfunded.
 - **Withdrawal and Closure**: Users can withdraw streamed tokens or close streams at any time.
 
 ## Installation
@@ -22,10 +22,20 @@
 ## Contract Structure
 
 ### **Core Data Structures**
-- `Pool<T>`: Stores stream configurations and token balances.
+- `Vault<T>`: A vault supporting multiple token streams. Fields:
+  - `name`: Identifier for the vault.
+  - `created`: Timestamp of vault creation.
+  - `owner`: Owner's address.
+  - `total_secs`: Total duration in seconds of all active streams.
+  - `committed`: Tokens already committed to streams.
+  - `available`: Tokens available for new streams.
+  - `streams`: Map of stream IDs to `Stream` objects.
+  - `token`: The token type managed by the vault.
+  - `balance_updated`: Timestamp of the last balance update.
+  - `debts`: List of outstanding debts due to underfunding.
 - `Stream`: Represents an individual streaming payment with a rate per second.
-- `Store`: Manages token balances within the pool.
-- `Debt`: Keeps track of outstanding payments.
+- `Store`: Contains the token store and reference extension for the underlying asset.
+- `Debt`: Records the destination and amount owed for an underfunded stream.
 
 ### **Key Functions**
 
@@ -34,15 +44,14 @@
 - `create_stream<T>(signer, destination, per_second)`: Internal function to initialize a stream.
 - `close_stream<T>(signer, stream_id)`: Closes an active stream and settles outstanding payments.
 
-#### **Pool Management**
-- `create_pool<T>(signer, token, amount)`: Initializes a new token pool with a specified deposit.
-- `drain_pool<T>(signer, token, amount)`: Withdraws excess tokens from the pool.
-- `credit_pool<T>(pool, signer, token, amount)`: Allows users to fund the pool.
-- `view_pool<T>(owner)`: Views available and committed token balances in the pool.
+#### **Vault Management**
+- `create_vault<T>(signer, token, amount)`: Initializes a new token vault with a specified deposit.
+- `drain_vault<T>(signer, token, amount)`: Withdraws excess tokens from the vault.
+- `view_vault<T>(owner)`: Views available and committed token balances in the vault.
 
 #### **Token Transfers & Balancing**
-- `balance_pool<T>(pool, fail)`: Ensures that the pool remains solvent and tokens are properly allocated.
-- `withdraw_from_stream<T>(pool, stream_id)`: Withdraws accumulated tokens for a stream recipient.
+- `balance_vault<T>(vault, fail)`: Ensures that the pool remains solvent and tokens are properly allocated.
+- `withdraw_from_stream<T>(vault, stream_id)`: Withdraws accumulated tokens for a stream recipient.
 
 ### **Events**
 - `StreamCreatedEvent`: Emitted when a new stream is created.
@@ -65,8 +74,8 @@
 
 ## Testing
 This contract includes extensive test cases that validate:
-- Pool creation, funding, and withdrawal.
-- Stream creation, token distribution, and pool balance management.
+- Vault creation, funding, and withdrawal.
+- Stream creation, token distribution, and vault balance management.
 - Handling of insufficient funds and debt tracking.
 
 Run tests with:

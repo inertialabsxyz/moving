@@ -82,7 +82,7 @@ async function createAccount() : Promise<Ed25519Account> {
     return account;
 }
 
-async function getPoolAddress(account: Ed25519Account, token: string) : Promise<`0x${string}`> {
+async function getVaultAddress(account: Ed25519Account, token: string) : Promise<`0x${string}`> {
     const result = await aptos.view({
         payload: {
             function: `${deployerAccount.accountAddress}::streams::vault_address`,
@@ -94,19 +94,19 @@ async function getPoolAddress(account: Ed25519Account, token: string) : Promise<
     expect(result.length).toBe(1);
 
     const addr =  result[0]?.toString() || "";
-    if (!addr.startsWith("0x")) throw new Error("Invalid Pool address");
+    if (!addr.startsWith("0x")) throw new Error("Invalid Vault address");
     return addr as `0x${string}`;
 }
 
-async function getPoolObject(account: Ed25519Account, token: string) {
-    const vaultAddress = await getPoolAddress(account, token);
-    let type = `${deployerAccount.accountAddress}::streams::Pool<0x1::object::Object<0x1::fungible_asset::Metadata>>`;
+async function getVaultObject(account: Ed25519Account, token: string) {
+    const vaultAddress = await getVaultAddress(account, token);
+    let type = `${deployerAccount.accountAddress}::streams::Vault<0x1::object::Object<0x1::fungible_asset::Metadata>>`;
 
     // @ts-ignore
     return await aptos.getAccountResource({accountAddress: vaultAddress, resourceType: type});
 }
 
-async function createPool({account, vaultAmount, name = "Pool", token = Tokens.APT}: {
+async function createVault({account, vaultAmount, name = "Vault", token = Tokens.APT}: {
     account: Ed25519Account,
     vaultAmount: number,
     name?: string,
@@ -132,11 +132,11 @@ async function createPool({account, vaultAmount, name = "Pool", token = Tokens.A
     let newBalance = await getFungibleAssetBalance(account, token);
     expect(newBalance).toBe(oldBalance - vaultAmount - gasCost);
 
-    return await getPoolObject(account, token);
+    return await getVaultObject(account, token);
 }
 
-async function viewPool(account: Ed25519Account, token: string) : Promise<PoolView> {
-    const vaultAddr = await getPoolAddress(account, token);
+async function viewVault(account: Ed25519Account, token: string) : Promise<VaultView> {
+    const vaultAddr = await getVaultAddress(account, token);
     let vaultAddress = vaultAddr?.toString() || "";
 
     const result = await aptos.view({
@@ -155,7 +155,7 @@ async function viewPool(account: Ed25519Account, token: string) : Promise<PoolVi
     return { name, available, committed, lastBalance };
 }
 
-async function settlePool(account: Ed25519Account, vaultAddress: string) {
+async function settleVault(account: Ed25519Account, vaultAddress: string) {
     const transaction = await aptos.transaction.build.simple({
         sender: account.accountAddress,
         data:{
@@ -189,7 +189,7 @@ async function startStream({account, token, destination, perSecond, name = "Stre
     return (executedTransaction as UserTransactionResponse).events[0].data.stream_id;
 }
 
-interface PoolView {
+interface VaultView {
     name: string,
     available: number,
     committed: number,
@@ -204,7 +204,7 @@ beforeAll(async () => {
 test("Create a vault", async () => {
     let vaultAmount = 100;
     let alice = await createAccount();
-    const vaultObject = await createPool({account: alice, vaultAmount: vaultAmount});
+    const vaultObject = await createVault({account: alice, vaultAmount: vaultAmount});
     const availableStoreAddress = vaultObject["available"]["store"]["inner"];
     const availableStore = await aptos.getAccountResource({accountAddress: availableStoreAddress, resourceType: "0x1::fungible_asset::FungibleStore"});
     expect(parseInt(availableStore["balance"])).toBe(vaultAmount);
@@ -243,7 +243,7 @@ test("Drain from the vault", async () => {
     // Create the vault
     let vaultAmount = 100;
     let alice = await createAccount();
-    let vaultObject = await createPool({account: alice, vaultAmount: vaultAmount});
+    let vaultObject = await createVault({account: alice, vaultAmount: vaultAmount});
 
     let drainAmount = 50;
     let oldBalance = await aptos.account.getAccountAPTAmount(alice);
@@ -274,7 +274,7 @@ test("Excess Drain from the vault", async () => {
 
     let alice = await createAccount();
     let vaultAmount = 100;
-    await createPool({account: alice, vaultAmount: vaultAmount});
+    await createVault({account: alice, vaultAmount: vaultAmount});
 
     try {
         let drainAmount = vaultAmount + 1;
@@ -300,9 +300,9 @@ test("Credit the vault", async () => {
 
     let alice = await createAccount();
     let vaultAmount = 100;
-    let vaultObject = await createPool({account: alice, vaultAmount: vaultAmount});
+    let vaultObject = await createVault({account: alice, vaultAmount: vaultAmount});
 
-    const vaultAddr = await getPoolAddress(alice, Tokens.APT);
+    const vaultAddr = await getVaultAddress(alice, Tokens.APT);
     let vaultAddress = vaultAddr?.toString() || "";
 
     let creditAmount = 50;
@@ -342,8 +342,8 @@ test("View a vault", async () => {
     let alice = await createAccount();
     let vaultAmount = 100;
     let name = "Payroll";
-    await createPool({account: alice, vaultAmount: vaultAmount, name});
-    let vaultView = await viewPool(alice, Tokens.APT);
+    await createVault({account: alice, vaultAmount: vaultAmount, name});
+    let vaultView = await viewVault(alice, Tokens.APT);
 
     expect(vaultView.name).toBe(name);
     expect(vaultView.available).toBe(vaultAmount);
@@ -363,8 +363,8 @@ test("Create multiple vaults", async () => {
 
     for (const token of tokens) {
         for (const account of accounts) {
-            await createPool({account: account, vaultAmount: vaultAmount, token});
-            let vaultView = await viewPool(account, token);
+            await createVault({account: account, vaultAmount: vaultAmount, token});
+            let vaultView = await viewVault(account, token);
 
             expect(vaultView.available).toBe(vaultAmount);
             expect(vaultView.committed).toBe(0);
@@ -379,27 +379,27 @@ test("Create stream", async () => {
     let vaultAmount = 100;
     let perSecond = 10;
 
-    await createPool({account: alice, vaultAmount: vaultAmount});
+    await createVault({account: alice, vaultAmount: vaultAmount});
 
     await startStream({account: alice, token: Tokens.APT, destination: bob.accountAddress, perSecond: perSecond});
 
-    const vaultObject = await getPoolObject(alice, Tokens.APT);
+    const vaultObject = await getVaultObject(alice, Tokens.APT);
     const originalLastBalance = parseInt(vaultObject["balance_updated"]);
     expect(vaultObject["streams"]["data"].length).toBe(1);
     let stream = vaultObject["streams"]["data"][0]["value"];
     expect(stream["destination"].substring(2).padStart(64, '0')).toBe(bob.accountAddress.toStringWithoutPrefix());
     expect(parseInt(stream["per_second"])).toBe(perSecond);
-    let vaultAddress = await getPoolAddress(alice, Tokens.APT);
+    let vaultAddress = await getVaultAddress(alice, Tokens.APT);
     expect(stream["vault"]).toBe(vaultAddress);
 
     let sleepFor = 5;
     await sleep(sleepFor * 1000);
 
     // Settle the vault
-    await settlePool(alice, vaultAddress);
+    await settleVault(alice, vaultAddress);
 
     // Check we have now the amount committed
-    let vaultView = await viewPool(alice, Tokens.APT);
+    let vaultView = await viewVault(alice, Tokens.APT);
 
     const time = vaultView.lastBalance - originalLastBalance;
     expect(vaultView.committed).toBe(time * perSecond);
@@ -443,7 +443,7 @@ test("Create stream and withdraw", async () => {
     let perSecond = 1;
     let oldBalance = await aptos.account.getAccountAPTAmount(bob);
 
-    let vaultObject = await createPool({account: alice, vaultAmount: vaultAmount});
+    let vaultObject = await createVault({account: alice, vaultAmount: vaultAmount});
     const originalLastBalance = parseInt(vaultObject["balance_updated"]);
     let streamId = await startStream({
         account: alice,
@@ -454,9 +454,9 @@ test("Create stream and withdraw", async () => {
     let sleepFor = 5;
     // Sleep a while extra to make sure we don't round down
     await sleep(sleepFor * 1000);
-    let vaultAddress = await getPoolAddress(alice, Tokens.APT);
+    let vaultAddress = await getVaultAddress(alice, Tokens.APT);
     await makeWithdrawal(alice, vaultAddress, streamId);
-    let vaultView = await viewPool(alice, Tokens.APT);
+    let vaultView = await viewVault(alice, Tokens.APT);
     sleep(500);
     let newBalance = await aptos.account.getAccountAPTAmount(bob);
     expect(newBalance - oldBalance).toBe((vaultView.lastBalance - originalLastBalance) * perSecond);
@@ -470,7 +470,7 @@ test("Create stream and close", async () => {
     let perSecond = 1;
     let oldBalance = await aptos.account.getAccountAPTAmount(bob);
 
-    let vaultObject = await createPool({account: alice, vaultAmount: vaultAmount});
+    let vaultObject = await createVault({account: alice, vaultAmount: vaultAmount});
     const originalLastBalance = parseInt(vaultObject["balance_updated"]);
     let streamId = await startStream({
         account: alice,
@@ -481,9 +481,9 @@ test("Create stream and close", async () => {
     let sleepFor = 5;
     // Sleep a while extra to make sure we don't round down
     await sleep(sleepFor * 1000);
-    let vaultAddress = await getPoolAddress(alice, Tokens.APT);
+    let vaultAddress = await getVaultAddress(alice, Tokens.APT);
     await closeStream(alice, vaultAddress, streamId);
-    let vaultView = await viewPool(alice, Tokens.APT);
+    let vaultView = await viewVault(alice, Tokens.APT);
     let newBalance = await aptos.account.getAccountAPTAmount(bob);
     expect(newBalance - oldBalance).toBe((vaultView.lastBalance - originalLastBalance) * perSecond);
 
@@ -496,7 +496,7 @@ test("Create stream and cancel to have debt", async () => {
     let perSecond = 1;
     let oldBalance = await aptos.account.getAccountAPTAmount(bob);
 
-    let vaultObject = await createPool({account: alice, vaultAmount: vaultAmount});
+    let vaultObject = await createVault({account: alice, vaultAmount: vaultAmount});
     const originalLastBalance = parseInt(vaultObject["balance_updated"]);
     let streamId = await startStream({
         account: alice,
@@ -509,12 +509,12 @@ test("Create stream and cancel to have debt", async () => {
     // Sleep a while extra to make sure we don't round down
     await sleep(sleepFor * 1000);
     // Settle the vault
-    let vaultAddress = await getPoolAddress(alice, Tokens.APT);
+    let vaultAddress = await getVaultAddress(alice, Tokens.APT);
     await closeStream(alice, vaultAddress, streamId);
     let newBalance = await aptos.account.getAccountAPTAmount(bob);
     // All of the vault would be paid to settle and would leave a debt
     expect(newBalance - oldBalance).toBe(vaultAmount);
-    const vault = await getPoolObject(alice, Tokens.APT);
+    const vault = await getVaultObject(alice, Tokens.APT);
     const updatedLastBalance = parseInt(vault["balance_updated"]);
     const debt = vault["debts"][0];
     expect(debt).toBeDefined();
@@ -529,7 +529,7 @@ test("Create stream and withdraw to have debt", async () => {
     let perSecond = 1;
     let oldBalance = await aptos.account.getAccountAPTAmount(bob);
 
-    await createPool({account: alice, vaultAmount: vaultAmount});
+    await createVault({account: alice, vaultAmount: vaultAmount});
     let streamId = await startStream({
         account: alice,
         token: Tokens.APT,
@@ -541,7 +541,7 @@ test("Create stream and withdraw to have debt", async () => {
     // Sleep a while extra to make sure we don't round down
     await sleep(sleepFor * 1000);
     // Settle the vault
-    let vaultAddress = await getPoolAddress(alice, Tokens.APT);
+    let vaultAddress = await getVaultAddress(alice, Tokens.APT);
     await makeWithdrawal(alice, vaultAddress, streamId);
     let newBalance = await aptos.account.getAccountAPTAmount(bob);
     // All of the vault would be paid to settle and would leave a debt
