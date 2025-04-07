@@ -12,7 +12,7 @@ export function getEnvConfig() {
   // Create token contracts map from SUPPORTED_TOKENS
   const tokenContracts: {[symbol: string]: string} = {};
   SUPPORTED_TOKENS.forEach(token => {
-    tokenContracts[token.symbol] = token.fungibleAsset;
+    tokenContracts[token.symbol] = token.fungibleAssetAddress;
   });
 
   return {
@@ -20,7 +20,7 @@ export function getEnvConfig() {
     // Now defaults to false if not specified
     useMock: import.meta.env.VITE_USE_MOCK === 'true',
     
-    // Contract address for the payment stream contract
+    // Contract address for the stream contract
     contractAddress: import.meta.env.VITE_CONTRACT_ADDRESS || undefined,
     
     // Network URL for the blockchain
