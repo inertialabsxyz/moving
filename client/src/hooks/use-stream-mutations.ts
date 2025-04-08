@@ -1,15 +1,16 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { streamService } from "@/lib/services";
+import { useStreamService } from "@/lib/services";
 import { Stream } from "@/lib/types";
 import { toast } from "sonner";
 
 export function useCreateStreamMutation() {
   const queryClient = useQueryClient();
-  
+  const {createStream} = useStreamService();
+
   return useMutation({
     mutationFn: (streamData: Omit<Stream, "id" | "createdAt" | "totalStreamed" | "totalWithdrawn">) => 
-      streamService.createStream(streamData),
+      createStream(streamData),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["streams"] });
       queryClient.invalidateQueries({ queryKey: ["streams", "vault", data.vaultId] });
@@ -24,10 +25,10 @@ export function useCreateStreamMutation() {
 
 export function useUpdateStreamMutation() {
   const queryClient = useQueryClient();
-  
+  const {updateStream} = useStreamService();
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Stream> }) => 
-      streamService.updateStream(id, updates),
+      updateStream(id, updates),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["streams"] });
       queryClient.invalidateQueries({ queryKey: ["stream", data.id] });
@@ -43,9 +44,9 @@ export function useUpdateStreamMutation() {
 
 export function useCancelStreamMutation() {
   const queryClient = useQueryClient();
-  
+  const {cancelStream} = useStreamService();
   return useMutation({
-    mutationFn: (id: string) => streamService.cancelStream(id),
+    mutationFn: (id: string) => cancelStream(id),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["streams"] });
       queryClient.invalidateQueries({ queryKey: ["stream", data.id] });
@@ -61,10 +62,10 @@ export function useCancelStreamMutation() {
 
 export function useWithdrawFromStreamMutation() {
   const queryClient = useQueryClient();
-  
+  const {withdrawFromStream} = useStreamService();
   return useMutation({
     mutationFn: ({ id, amount }: { id: string; amount: number }) => 
-      streamService.withdrawFromStream(id, amount),
+      withdrawFromStream(id, amount),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["streams"] });
       queryClient.invalidateQueries({ queryKey: ["stream", data.id] });

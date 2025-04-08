@@ -1,19 +1,21 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { vaultService } from "@/lib/services";
+import { useVaultService } from "@/lib/services";
 import { Vault } from "@/lib/types";
 
 export function useVaultsQuery() {
+  const {getVaults} = useVaultService();
   return useQuery({
     queryKey: ["vaults"],
-    queryFn: () => vaultService.getVaults(),
+    queryFn: () => getVaults(),
   });
 }
 
 export function useVaultQuery(id: string | undefined) {
+  const {getVaultsById} = useVaultService();
   return useQuery({
     queryKey: ["vault", id],
-    queryFn: () => id ? vaultService.getVaultsById(id) : Promise.resolve(null),
+    queryFn: () => id ? getVaultsById(id) : Promise.resolve(null),
     enabled: !!id,
   });
 }
