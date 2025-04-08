@@ -15,7 +15,7 @@ const getInitialConfig = (): ApiConfig => {
   // Create token contracts map from SUPPORTED_TOKENS
   const tokenContracts: {[symbol: string]: string} = {};
   SUPPORTED_TOKENS.forEach(token => {
-    tokenContracts[token.symbol] = token.fungibleAsset;
+    tokenContracts[token.symbol] = token.fungibleAssetAddress;
   });
 
   return {
