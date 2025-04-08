@@ -8,7 +8,7 @@ import {AccountAddress, Aptos, AptosConfig, Network} from "@aptos-labs/ts-sdk";
 import { useToast } from '@/hooks/use-toast';
 import { useApi } from './ApiContext';
 import { Wallet, mockWallet } from '@/lib/types';
-import {walletService} from "@/lib/services";
+import { useWalletService } from "@/lib/services";
 
 // Define the wallet context type
 interface WalletContextType {
@@ -17,6 +17,7 @@ interface WalletContextType {
   currentWallet: Wallet;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
+  config: AptosConfig;
 }
 
 // Create the context
@@ -46,6 +47,9 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
   // State for the current wallet information
   const [currentWallet, setCurrentWallet] = useState<Wallet>(mockWallet);
 
+  const [config, setConfig] = useState<AptosConfig>();
+
+  const {getCurrentWallet} = useWalletService();
 
   // Update our connected state when the adapter's connected state changes
   useEffect(() => {
@@ -71,13 +75,17 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
     if (connected && account) {
       console.log("Connected to wallet:", account.toString());
 
-      const aptos = new Aptos(new AptosConfig({
-          network: network?.name,
-          fullnode: network?.url
-        })
-      );
+      setConfig(new AptosConfig({
+        network: network?.name,
+        fullnode: network?.url
+      }));
 
-      walletService.getCurrentWallet(aptos, account.address.toString()).then(wallet => {
+      const aptos = new Aptos(new AptosConfig({
+        network: network?.name,
+        fullnode: network?.url
+      }));
+
+      getCurrentWallet().then(wallet => {
         // Update current wallet with connected account information
         setCurrentWallet(wallet);
         // Log current wallet state
@@ -91,6 +99,12 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
         isCurrentUser: false,
         balances: {}
       });
+
+      setConfig(new AptosConfig({
+        network: undefined,
+        fullnode: ""
+      }));
+
       console.log("Disconnected wallet (real mode)");
     } else if (!connected && apiConfig.useMock) {
       // If disconnected but using mock, show mock wallet
@@ -170,6 +184,7 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
       currentWallet,
       connectWallet,
       disconnectWallet,
+      config,
     }}>
       {children}
     </WalletContext.Provider>

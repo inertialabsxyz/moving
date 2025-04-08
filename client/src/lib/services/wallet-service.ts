@@ -1,7 +1,9 @@
 import {mockWallet, SUPPORTED_TOKENS, Wallet} from "../types";
 import {getApiConfig, mockDelay} from "../api-client";
 import {Aptos} from "@aptos-labs/ts-sdk";
-
+import { useMemo } from "react";
+import { useWallet} from "@aptos-labs/wallet-adapter-react";
+import { AptosConfig } from "@aptos-labs/ts-sdk";
 // Keep track of the mock wallet state across service calls
 const currentMockWallet = { ...mockWallet };
 
@@ -24,11 +26,11 @@ async function getFungibleAssetBalance(aptos: Aptos, account: string, token: str
   return 0;
 }
 
-export const walletService = {
-  /**
-   * Get current wallet information
-   */
-  getCurrentWallet: async (aptos: Aptos, account?: string): Promise<Wallet> => {
+export const useWalletService = () => {
+  const config = useMemo(() => getApiConfig(), []);
+  const {account, network} = useWallet();
+
+  const getCurrentWallet = async (): Promise<Wallet> => {
     const apiConfig = getApiConfig();
 
     if (apiConfig.useMock) {
@@ -44,19 +46,30 @@ export const walletService = {
         }
       }
 
+      const aptosConfig = new AptosConfig({
+        network: network?.name,
+        fullnode: network?.url
+      });
+
       const wallet = {
-        address: account,
+        address: account.address.toString(),
         isCurrentUser: true,
         balances: {},
       }
 
+      const aptos = new Aptos(aptosConfig);
+
       for (const token of SUPPORTED_TOKENS) {
-        wallet.balances[token.symbol] = await getFungibleAssetBalance(aptos, account, token.fungibleAssetAddress);
+        wallet.balances[token.symbol] = await getFungibleAssetBalance(aptos, wallet.address, token.fungibleAssetAddress);
       }
 
       console.log("Returning wallet data:", wallet);
 
       return wallet;
     }
-  },
+  };
+
+  return {
+    getCurrentWallet,
+  }
 };

@@ -1,6 +1,6 @@
 
 import { configureApi, getApiConfig, resetApiConfig } from "../api-client";
-import { walletService } from "./wallet-service";
+import { useWalletService } from "./wallet-service";
 import { useVaultService } from "./vault-service.ts";
 import { useStreamService } from "./stream-service";
 
@@ -12,7 +12,7 @@ export {
   resetApiConfig,
   
   // Services
-  walletService,
+  useWalletService,
   useVaultService,
   useStreamService
 };

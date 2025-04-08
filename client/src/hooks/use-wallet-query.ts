@@ -1,6 +1,6 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { walletService } from "@/lib/services";
+import { useWalletService } from "@/lib/services";
 import { useWalletContext } from "@/context/WalletContext";
 import { useApi } from "@/context/ApiContext";
 import { useWallet } from "@aptos-labs/wallet-adapter-react";
