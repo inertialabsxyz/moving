@@ -3,13 +3,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useVaultService } from "@/lib/services";
 import { Vault } from "@/lib/types";
 import { toast } from "sonner";
-import {useWalletContext} from "@/context/WalletContext.tsx";
-import {Aptos} from "@aptos-labs/ts-sdk";
 
 export function useCreateVaultMutation() {
   const queryClient = useQueryClient();
-  const { config } = useWalletContext();
-  const aptos = new Aptos(config);
   const {createVault} = useVaultService();
 
   return useMutation({
@@ -34,7 +30,7 @@ export function useUpdateVaultMutation() {
       updateVault(id, updates),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["vaults"] });
-      // queryClient.invalidateQueries({ queryKey: ["vault", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["vault", data.id] });
       toast.success("Vault updated successfully");
     },
     onError: (error) => {
@@ -69,7 +65,7 @@ export function useAddCreditMutation() {
       addCredit(id, amount),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["vaults"] });
-      // queryClient.invalidateQueries({ queryKey: ["vault", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["vault", data.id] });
       toast.success(`Successfully added credit to vault`);
     },
     onError: (error) => {
@@ -87,8 +83,8 @@ export function useDrainVaultMutation() {
       drainVault(id, amount),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["vaults"] });
-      // queryClient.invalidateQueries({ queryKey: ["vault", data.id] });
-      // toast.success(`Successfully drained ${data.token} from vault`);
+      queryClient.invalidateQueries({ queryKey: ["vault", data.id] });
+      toast.success(`Successfully drained ${data.token} from vault`);
     },
     onError: (error) => {
       toast.error(`Failed to drain vault: ${error instanceof Error ? error.message : "Unknown error"}`);

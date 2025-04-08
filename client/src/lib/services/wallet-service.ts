@@ -31,9 +31,7 @@ export const useWalletService = () => {
   const {account, network} = useWallet();
 
   const getCurrentWallet = async (): Promise<Wallet> => {
-    const apiConfig = getApiConfig();
-
-    if (apiConfig.useMock) {
+    if (config.useMock) {
       await mockDelay();
       return { ...currentMockWallet };
     } else {
